@@ -16,7 +16,7 @@ for scene in main_dirs:
                path_scene = os.path.join(cwd, scene)
                print(path_scene)
                os.makedirs(new, exist_ok=True)
-               shutil(path_scene, new)
+               shutil.move(path_scene, new)
 
                
 
