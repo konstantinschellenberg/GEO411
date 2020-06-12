@@ -1,0 +1,77 @@
+---
+title: "Aufsetzen einer Virtuellen Maschine für ISCE"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+geometry: margin=1.5cm
+output:
+  pdf_document:
+    extra_dependencies: ["float"]
+    toc: true
+    number_sections: true
+link-citations: yes
+---
+
+# Download von Oracle Virtual-Box
+
+\begin{figure}[H]
+  \includegraphics[width=300px]{images/1.png}
+\end{figure}
+
+- Auf der Website https://www.virtualbox.org/wiki/Downloads findet man den Download für die meinsten Betriebssysteme
+
+
+# Download von Ubuntu 20.04
+
+- Auf der Website https://releases.ubuntu.com/20.04/ kann man sich das Desktop-Image für den LTR 20.04 herunterladen
+
+\begin{figure}[H]
+  \includegraphics[width=300px]{images/2.png}
+\end{figure}
+
+
+# Aufsetzen der Virtuellen Maschine
+
+- Sobald man sich auf dem Startbildschirm des Programmes befindet, klickt man auf `New` um eine neure Virtuelle Maschine zu erstellen 
+
+\begin{figure}[H]
+  \includegraphics[width=200px]{images/3.png}
+\end{figure}
+
+
+- Danach wählt man sein Betriebssystem. In diesem Fall Linux
+
+\begin{figure}[H]
+  \includegraphics[width=200px]{images/4.png}
+\end{figure}
+
+- Danach wählt man asu wie viel Arbeitsspeicher die VM haben soll. Am besten bleibt man hier gerade noch im grünen Bereich.
+
+\begin{figure}[H]
+  \includegraphics[width=200px]{images/5.png}
+\end{figure}
+
+- Danach wählt man am besten `Create a virtual hard disk now`
+
+\begin{figure}[H]
+  \includegraphics[width=200px]{images/6.png}
+\end{figure}
+
+- Hier beläasst man auch alles bei den Standardeinstellungen
+
+\begin{figure}[H]
+  \includegraphics[width=200px]{images/7.png}
+\end{figure}
+
+- Ebenso wie hier wo man `dynamically allocated` anklickt
+
+\begin{figure}[H]
+  \includegraphics[width=200px]{images/8.png}
+\end{figure}
+
+- Als Größe sollte man schon 40 GB auswählen. Keine Sorge, man kann die VM danach einfach löschen.
+- Dann kann man auf `create` klicken und die VM befindet sich in der Liste der auszuwählenden VMs.
+
+\begin{figure}[H]
+  \includegraphics[width=200px]{images/9.png}
+\end{figure}
+
+

@@ -56,20 +56,16 @@ ggplot(h_data, aes(x = breaks, y = counts)) +
 # Creating cross scatterplots for coherence and CHM for 1 date
 
 # resample coherence to canopy height
-bs_res = resample(bs, chm)
+bs_db_res = resample(bs_db, chm)
 
 # matching extents?
-identical(extent(bs_res), extent(chm))
-# set all to Na that is less than 0 in chm
-chm[chm < 0] = NA
+identical(extent(bs_db_res), extent(chm))
 
-plot(values(bs), values(chm))
-
-df = data.frame(bs = values(bs_res), chm = values(chm))
+df = data.frame(bs = values(bs_db_res), chm = values(chm))
 
 # Raster Scatterplot
 ggplot(df, aes(x = chm, y = bs)) +
-    geom_bin2d() +
+    geom_bin2d(bins=100) +
     scale_fill_continuous(type = "viridis") +
     ggtitle("ALOS-2 HV Backscatter for 2015-08-21 vs. Lidar Canopy Height")+
     xlab("Backscatter") +
