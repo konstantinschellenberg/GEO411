@@ -50,8 +50,6 @@ cat("lidar height file: \n", lidar_height,"\n\n")
 l = list.files(path = data_dir, full.names = T, recursive = T)
 coherence_files = l[grepl("topophase.cor.geo", x = l)]
 coherence_files_created = coherence_files[!grepl("vrt$|xml$|topophase.cor.geo$", x = coherence_files)]
-# print(coherence_files_created)
-file.remove(coherence_files_created) # <------- run this for deletion - be careful!
 
 # ------------------------------------------------------------------------------
 #' Functionality of the script:
@@ -78,6 +76,9 @@ extr = function(ras){
         sub = gsub(pattern = "geo.vrt", replacement = "geo.tif", x = names)
         outfile = append(outfile, sub)
     }
+    for(file in outfile){
+        if(file.exists(file))file.remove(outfile)
+    }
 
     # trying gdal_translate for getting band 2 (coherence)
     tryCatch(
@@ -103,6 +104,9 @@ proj = function(ras){
     for(names in ras){
         sub = gsub(pattern = "geo.tif", replacement = "geo.proj.tif", x = names)
         outfile = append(outfile, sub)
+    }
+    for(file in outfile){
+        if(file.exists(file))file.remove(outfile)
     }
 
     # trying gdalwarp for reprojecting rasters to EPSG:32632
@@ -133,6 +137,9 @@ resamp = function(ras){
     for(names in ras){
         sub = gsub(pattern = "geo.proj.tif", replacement = "geo.proj.resamp.na.tif", x = names)
         outfile = append(outfile, sub)
+    }
+    for(file in outfile){
+        if(file.exists(file))file.remove(outfile)
     }
 
     tryCatch(
@@ -168,6 +175,9 @@ resamp_lidar = function(ras, lidar){
     for(names in ras){
         sub = gsub(pattern = "geo.proj.resamp.na.tif", replacement = "geo.proj.resamp.na.crop.tolidar.tif", x = names)
         outfile = append(outfile, sub)
+    }
+    for(file in outfile){
+        if(file.exists(file))file.remove(outfile)
     }
 
     # resample coherence to canopy height

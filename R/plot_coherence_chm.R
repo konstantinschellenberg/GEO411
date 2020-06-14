@@ -12,7 +12,7 @@ system(command = sprintf("Rscript %s --help", file)) # run help
 # user inputs
 directory = "D:/Geodaten/GEO411/01_data"
 lidar = "D:/Geodaten/GEO411/01_data/chm_maskedtofnf_30_32632_-99nodata.tif"
-targetresolution = "20"
+targetresolution = "30"
 
 cmd = sprintf("Rscript %s --directory=%s --lidar=%s --targetresolution=%s", file, directory, lidar, targetresolution)
 print(cmd)
