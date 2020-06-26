@@ -19,6 +19,7 @@ system(command = sprintf("Rscript %s --help", file)) # run help
 cmd = sprintf("Rscript %s --directory=%s --lidar=%s --targetresolution=%s", file, directory, lidar, targetresolution)
 print(cmd)
 system(cmd)
+system("gdalinfo")
 
 # Plotting ---------------------------------------------------------------------
 
