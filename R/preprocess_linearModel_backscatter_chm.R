@@ -1,6 +1,7 @@
 #######################
 # Create linear model to predict forest heigth given the radar backscatter
 #######################
+# (1/2) Proprocessing
 
 # load libraries
 library(dplyr)
@@ -85,7 +86,7 @@ for (i in 1:length(coherence_files)){
     file_ending = ".tif"
     path = unlist(strsplit(coherence_files[[i]], .Platform$file.sep))[1:2]
     base_path = paste(path[[1]], path[[2]], sep = .Platform$file.sep)
-    file_path = paste(base_path, paste0(file_name, file_ending), sep = .Platform$file.sep)
+    file_path = paste(base_path, paste0(path[[1]], "_", file_name, file_ending), sep = .Platform$file.sep)
     # build gdal translate
     if(!file.exists(file_path)){
     cmd = sprintf("gdal_translate -b 2 %s %s", coherence_files[[i]], file_path)
@@ -152,6 +153,7 @@ for (i in 1:length(coherence_raster_list)){
 #####
 # Make DataFrame
 #####
+
 # list all
 list_chm_backscatter_coherence = do.call(c, list(chm, backscatter_list, coherence_raster_list))
 # get the names
