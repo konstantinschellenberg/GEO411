@@ -10,6 +10,11 @@ library(stringr)
 
 # set working directory
 setwd("/home/robin/geodata/geo411/GEO411_FSH_Roda/")
+setwd("D:/Geodaten/GEO411/01_data/")
+
+# if this runs, gdal is properly installed on the machine. No conda environement possible. Needs
+# to be installed as binary
+system("gdalinfo --version")
 
 ###############################################################################
 ###############################################################################
@@ -28,18 +33,20 @@ for (i in 1:length(files)){
     file_name = paste0(file_name, "_32632_20x20")
     file_ending = ".tif"
     path = unlist(strsplit(files[[i]], .Platform$file.sep))[1:2]
-    base_path = paste(path[[1]], path[[2]], sep = .Platform$file.sep)
+    base_path = paste(path[[1]], sep = .Platform$file.sep)
     file_path = paste(base_path, paste0(file_name, file_ending), sep = .Platform$file.sep)
     if(!file.exists(file_path)){
-    cmd = sprintf("gdalwarp -t_srs EPSG:32632 -tr 20 20 %s %s", files[[i]], file_path)
-    system(cmd)}else{
+        cmd = sprintf("gdalwarp -t_srs EPSG:32632 -tr 20 20 %s %s", files[[i]], file_path)
+        system(cmd)
+        }else{
         print("Reprojected, 20 x 20 m, Backscatter already exists")
     }
 }
 
+
 # resample all data to make extent exactly the same metadata
 # reference files
-ref_file_path = "snap_grd/20150821/ALOS2-FBDR1_1__A-ORBIT__ALOS2067251007-150821_Cal_TC_32632_20x20.tif"
+ref_file_path = "GRDS/ALOS2-FBDR1_1__A-ORBIT__ALOS2067251007-150821_Cal_TC_32632_20x20.tif"
 ref_file = raster(ref_file_path)
 # get all files
 pattern = "Cal_TC_32632_20x20.tif$"
@@ -121,6 +128,8 @@ coherence_stack = raster::stack(coherence_raster_list)
 
 # load chm
 chm = raster("ancillary_data/chm_maskedtofnf_10m_resampled_to_20m_32632.tif")
+chm = raster("ancillary_data/chm_maskedtofnf_10m_resampled_to_20m_32632_-99nodata.tif") # already NA = -99
+
 
 # resample all backscatter to the chm
 for (i in 1:length(backscatter_list)){
@@ -158,11 +167,10 @@ for (i in 1:length(list_chm_backscatter_coherence)){
     if(i == 1){
         final_df = as.data.frame(list_chm_backscatter_coherence[[i]])
     }else if (i < length(list_chm_backscatter_coherence)){
-    final_df[[i]] = values(list_backscatter_coherence[[i]])
+    final_df[[i]] = as.data.frame(list_chm_backscatter_coherence[[i]])
     }else{
-        final_df[[i]] = values(list_chm_backscatter_coherence[[i]])
-        final_df[["x"]] = coordinates(list_chm_backscatter_coherence[[i]])[1]
-        final_df[["y"]] = coordinates(list_chm_backscatter_coherence[[i]])[2]
+        final_df[[i]] = as.data.frame(list_chm_backscatter_coherence[[i]], xy = TRUE) %>%
+            dplyr::select(last_col(), x, y)
     }
 }
 
