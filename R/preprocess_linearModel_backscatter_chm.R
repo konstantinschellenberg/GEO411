@@ -47,7 +47,7 @@ for (i in 1:length(files)){
 
 # resample all data to make extent exactly the same metadata
 # reference files
-ref_file_path = "GRDS/ALOS2-FBDR1_1__A-ORBIT__ALOS2067251007-150821_Cal_TC_32632_20x20.tif"
+ref_file_path = "GRDs/ALOS2-FBDR1_1__A-ORBIT__ALOS2067251007-150821_Cal_TC_32632_20x20.tif"
 ref_file = raster(ref_file_path)
 # get all files
 pattern = "Cal_TC_32632_20x20.tif$"
@@ -80,7 +80,7 @@ coherence_files = coherence_files %>% .[str_detect(., "HH", negate=TRUE)] %>% .[
 coherence_raster_list = vector("list", length(coherence_files))
 
 # first make a tiff of all of them
-# I think isce2geotiff would do soemthing like this as well
+# I think isce2geotiff would do something like this as well
 for (i in 1:length(coherence_files)){
     file_name = strsplit(coherence_files[[i]], .Platform$file.sep)[[1]] %>% tail(., n=1) %>% substr(., start = 1, stop = nchar(.)-4)
     file_ending = ".tif"
@@ -94,7 +94,7 @@ for (i in 1:length(coherence_files)){
 }
 
 # get all the just produced coherence tifs
-pattern = "topophase.cor.geo.tif$"
+pattern = "_topophase.cor.geo.tif$"
 coherence_files_tif = list.files(".", pattern = pattern, recursive = TRUE)
 
 # now reproject and resample
@@ -169,15 +169,18 @@ for (i in 1:length(list_chm_backscatter_coherence)){
     if(i == 1){
         final_df = as.data.frame(list_chm_backscatter_coherence[[i]])
     }else if (i < length(list_chm_backscatter_coherence)){
-    final_df[[i]] = as.data.frame(list_chm_backscatter_coherence[[i]])
+        final_df[[i]] = values(list_chm_backscatter_coherence[[i]])
     }else{
-        final_df[[i]] = as.data.frame(list_chm_backscatter_coherence[[i]], xy = TRUE) %>%
-            dplyr::select(last_col(), x, y)
+        final_df[[i]] = values(list_chm_backscatter_coherence[[i]])
+        xy = as.data.frame(list_chm_backscatter_coherence[[i]], xy = T) %>% dplyr::select(x, y)
+        final_df = cbind(final_df, xy)
     }
 }
 
+names(final_df)
+
 # name the columns
-colnames(final_df)[1:length(list_chm_backscatter_coherence)] = names_all
+names(final_df)[1:length(list_chm_backscatter_coherence)] = names_all
 if (!file.exists("dev/final_df")){
     dir.create("dev")
     saveRDS(final_df, "dev/final_df.RDS")
