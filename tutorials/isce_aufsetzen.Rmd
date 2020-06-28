@@ -1,0 +1,82 @@
+---
+title: "ISCE-Installation"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+author: "Konstantin Schellenberg, Robin Kohrs"
+subtitle: "Geo 411"
+output:
+  bookdown::html_document2:
+    fig_caption: yes
+    theme: lumen
+    toc: yes
+    lof: true
+    number_sections: yes
+biblio-style: apalike
+link-citations: yes
+---
+
+# Download von Miniconda
+
+- Anstatt der sehr großen Anaconda-Software werden wir das kleinere Miniconda verweden. 
+- Von der conda-Website (https://docs.conda.io/en/latest/miniconda.html) läd man sich den entsprechenden Linux Installer herunter.
+- Nun startet man ein Terminal (`ctrl + T`) und wechselt in den Downloads-Ordner (`cd Downloads`)
+- Jetzt kann man die heruntergeladene Datei ausführbachen machen mit: 
+
+```{bash, eval=F}
+chmod +x Miniconda3-latest-Linux-x86_64.sh
+```
+
+- Danach ist Miniconda bereit zur Installation.
+- Im Laufe des Installationsprozesses hat man die Möglichkeit den Speicherort zu ändern und die Auswahl, ob Miniconda bei jeder neuen Shell-Session sich automatisch aktivieren soll. Beides belassen wir bei den Defaults.
+- Die Installation wird nun gestartet mit:
+
+```{bash, eval=F}
+./Miniconda3-latest-Linux-x86_64.sh
+```
+
+# Erstellen einer Miniconda-Umgebung
+- Um einen isolierten Container für ISCE zu erstellen, ist es empfehlenswert eine virtuelle Umgebung zu nutzen. 
+- Diese kann mit folgender Zeile erstellt werden:
+
+```{bash, eval=F}
+conda create --name isce isce2
+```
+
+- Dieser Aufruf erstellt nicht nur eine neue Umgebung mit dem Namen **isce**, sondern läd auch direkt alle notwendigen Pakete für isce2 (inklusive eines Python-Interpreters) herunter. 
+- Auch hier kann der Speicherort ausgewählt werden. Wiederum ist der Standard-Speicherort jedoch ok. Dieser ist üblicherweise `/home/user/miniconda3/envs/<name_der_Umgebung>`.
+
+
+# Setzen der Umgebungsvariablen
+- Damit ISCE von jedem Verzeichnis aus gestartet werden kann, müssen noch ein paar Pfade in einer Datei gesetzt werden, die jedes mal durchlaufen wird, sobald eine neue Shell-session gestartet wird. 
+- Dafür gibt es mehrere Möglichkeiten unter Bash. Wir nehmen die Datei `.bashrc`, welche in unserem Home-Verzeichnis liegt.
+- Falls sie noch nicht vorhanden ist, kann man sie mit `touch .bashrc` erstellen.
+- Diese öffnet man mit dem Editor seiner Wahl und schreibt die folgenden Zeilen an das Ende der Datei:
+
+```{bash, eval=F}
+# ISCE
+export PATH=$PATH:/home/<user>/miniconda3/envs/isce/lib/python3.8/site-packages/isce
+export PATH=$PATH:/home/<user>/miniconda3/envs/isce/lib/python3.8/site-packages/isce/applications
+export PATH=$PATH:/home/<user>/miniconda3/envs/isce/lib/python3.8/site-packages/isce/bin
+```
+
+- Dabei müssen der Name des Benutzers (`<user>`) und auch mögliche andere Namen individuell angepasst werden.
+- Danach schreibt man entweder `source .bashrc` in sein Terminal oder startet dieses einfach neu. 
+- Nun sollte bei der Eingabe von z.B. `topsApp.py --help` der Output der Hilfe von ISCE erscheinen:
+
+
+# Was tun wenn nichts funktioniert
+- Die Gründe hierfür können vielseitig sein.
+- Aus eigener Erfahrung können die folgenden Schritte helfen: 
+  + Unter `/home/<user>/miniconda3/envs/isce/lib/python3.8/site-packages/isce/applications` kann man sich die Berechtigungen für einzelnen Applikationen von ISCE mit `ls -l` ansehen. 
+```{bash}
+cd /home/robin/miniconda3/envs/isce/lib/python3.8/site-packages/isce/applications
+ls -l
+```
+  
+  
+- Nach unserem Wissen sollte hier jede Datei in der ersten Spalte mit den Ziffern `rwx` (read - write - execute) beginnen. 
+- Ist dies nicht der Fall kann man, wie oben bei der Installation von Miniconda, die Berechtigung ändern und die Datei ausführbar machen. 
+- Dazu schreibt man `chmod +x <name_der_Datei>`
+
+- Auch kam es bei uns häufig vor, dass die Pfade in `.bashrc` nicht ganz korrekt gesetzt waren. Dies lieber zwei Mal überprüfen und notfalls mit `which topsApp.py` den Speicherort nochmals nachsehen. 
+
+- Viele der auftretenden Probleme sind auf der Forum-Seite von ISCE schon diskutiert und gelöst worden:  [ISCE-Forum](http://earthdef.caltech.edu/)
