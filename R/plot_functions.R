@@ -4,7 +4,7 @@
 
 scatterplot = function(x, y, bins, xlab, ylab, title){
 
-    # coerch both rasters to dataframes
+    # coerce both rasters to dataframes
     df = data.frame(x = values(x), y = values(y))
 
     # Raster Scatterplot
@@ -16,6 +16,18 @@ scatterplot = function(x, y, bins, xlab, ylab, title){
         xlab(xlab) +
         theme_classic()
 }
+
+regression_line = function(x, y){
+
+    # coerce both rasters to dataframes
+    df = data.frame(x = values(x), y = values(y))
+    names(df) = c("a", "b", "c", "y")
+    lm.fit = lm(y ~ a+b+c, data = df)
+    plot(df$y, df$x)
+    abline(lm.fit)
+
+}
+
 
 # 2D Density map
 # ggplot(df, aes(x = x, y = y)) +

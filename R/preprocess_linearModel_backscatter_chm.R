@@ -63,6 +63,22 @@ for (i in 1:length(resampled_files)){
     }
 }
 
+# Resample to lidar and calculate db
+for (i in seq_along(resampled_files)){
+    print(resampled_files[[i]])
+    file = strsplit(resampled_files[[i]], .Platform$file.sep)[[1]] %>% tail(., n=1) %>% substr(., start = 1, stop = nchar(.)-4)
+    file_name = paste0(file, "_crop.tolidar")
+    file_name2 = paste0(file, "_crop.tolidar.db")
+    file_ending = ".tif"
+
+    path = unlist(strsplit(resampled_files[[i]], .Platform$file.sep)[[1]])[1:length(strsplit(resampled_files[[i]], .Platform$file.sep)[[1]]) - 1] %>%
+        paste(collapse = .Platform$file.sep)
+    file_path = paste(path, paste0(file_name, file_ending), sep = .Platform$file.sep)
+    file_path2 = paste(path, paste0(file_name2, file_ending), sep = .Platform$file.sep)
+    r = raster::resample(x = raster(resampled_files[[i]]), y = raster(lidar), filename = file_path, overwrite = T)
+    calc(r, fun = function(x){10 * log10(x)}, filename = file_path2, overwrite = T)
+}
+
 # stack em
 backscatter_stack = raster::stack(backscatter_list)
 
