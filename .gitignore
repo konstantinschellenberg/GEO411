@@ -1,9 +1,11 @@
-<<<<<<< HEAD
 .Rproj.user
 .Rhistory
 .RData
 .Ruserdata
-=======
 .ipynb*
 mardown_files*
 .idea
+=======
+PRECISE_ORBITS*
+data*
+models*
