@@ -24,64 +24,64 @@ system("gdalinfo --version")
 ##  BACKSCATTER, LINEAR  ##
 ###########################
 
-# get all the backscatter-files
-pattern = "Cal_TC.tif$"
-files = list.files(".", pattern = pattern, recursive = T)
-
-# reproject all data to 32632 and 20 x 20 m
-for (i in 1:length(files)){
-    file_name = strsplit(files[[i]], .Platform$file.sep)[[1]] %>% tail(., n=1) %>% substr(., start = 1, stop = nchar(.)-4)
-    file_name = paste0(file_name, "_32632_20x20")
-    file_ending = ".tif"
-    path = unlist(strsplit(files[[i]], .Platform$file.sep))[1:2]
-    base_path = paste(path[[1]], sep = .Platform$file.sep)
-    file_path = paste(base_path, paste0(file_name, file_ending), sep = .Platform$file.sep)
-    if(!file.exists(file_path)){
-        cmd = sprintf("gdalwarp -t_srs EPSG:32632 -tr 20 20 %s %s", files[[i]], file_path)
-        system(cmd)
-        }else{
-        print("Reprojected, 20 x 20 m, Backscatter already exists")
-    }
-}
-
-
-# resample all data to make extent exactly the same metadata
-# reference files
-ref_file_path = "GRDs/ALOS2-FBDR1_1__A-ORBIT__ALOS2067251007-150821_Cal_TC_32632_20x20.tif"
-ref_file = raster(ref_file_path)
-# get all files
-pattern = "Cal_TC_32632_20x20.tif$"
-resampled_files = list.files(".", pattern=pattern, recursive = T)
-# load and resample all files
-backscatter_list = vector("list", length(resampled_files))
-backscatter_list[[1]] = ref_file
-for (i in 1:length(resampled_files)){
-    if(!resampled_files[[i]] == ref_file_path){
-        ras = raster(resampled_files[[i]])
-        ras = resample(ras, ref_file)
-        backscatter_list[[i]] = ras
-    }
-}
-
-# Resample to lidar and calculate db
-for (i in seq_along(resampled_files)){
-    print(resampled_files[[i]])
-    file = strsplit(resampled_files[[i]], .Platform$file.sep)[[1]] %>% tail(., n=1) %>% substr(., start = 1, stop = nchar(.)-4)
-    file_name = paste0(file, "_crop.tolidar")
-    file_name2 = paste0(file, "_crop.tolidar.db")
-    file_ending = ".tif"
-
-    path = unlist(strsplit(resampled_files[[i]], .Platform$file.sep)[[1]])[1:length(strsplit(resampled_files[[i]], .Platform$file.sep)[[1]]) - 1] %>%
-        paste(collapse = .Platform$file.sep)
-    file_path = paste(path, paste0(file_name, file_ending), sep = .Platform$file.sep)
-    file_path2 = paste(path, paste0(file_name2, file_ending), sep = .Platform$file.sep)
-    r = raster::resample(x = raster(resampled_files[[i]]), y = raster(lidar), filename = file_path, overwrite = T)
-    calc(r, fun = function(x){10 * log10(x)}, filename = file_path2, overwrite = T)
-}
-
-# stack em
-backscatter_stack = raster::stack(backscatter_list)
-
+# # get all the backscatter-files
+# pattern = "Cal_TC.tif$"
+# files = list.files(".", pattern = pattern, recursive = T)
+#
+# # reproject all data to 32632 and 20 x 20 m
+# for (i in 1:length(files)){
+#     file_name = strsplit(files[[i]], .Platform$file.sep)[[1]] %>% tail(., n=1) %>% substr(., start = 1, stop = nchar(.)-4)
+#     file_name = paste0(file_name, "_32632_20x20")
+#     file_ending = ".tif"
+#     path = unlist(strsplit(files[[i]], .Platform$file.sep))[1:2]
+#     base_path = paste(path[[1]], sep = .Platform$file.sep)
+#     file_path = paste(base_path, paste0(file_name, file_ending), sep = .Platform$file.sep)
+#     if(!file.exists(file_path)){
+#         cmd = sprintf("gdalwarp -t_srs EPSG:32632 -tr 20 20 %s %s", files[[i]], file_path)
+#         system(cmd)
+#         }else{
+#         print("Reprojected, 20 x 20 m, Backscatter already exists")
+#     }
+# }
+#
+#
+# # resample all data to make extent exactly the same metadata
+# # reference files
+# ref_file_path = "GRDs/ALOS2-FBDR1_1__A-ORBIT__ALOS2067251007-150821_Cal_TC_32632_20x20.tif"
+# ref_file = raster(ref_file_path)
+# # get all files
+# pattern = "Cal_TC_32632_20x20.tif$"
+# resampled_files = list.files(".", pattern=pattern, recursive = T)
+# # load and resample all files
+# backscatter_list = vector("list", length(resampled_files))
+# backscatter_list[[1]] = ref_file
+# for (i in 1:length(resampled_files)){
+#     if(!resampled_files[[i]] == ref_file_path){
+#         ras = raster(resampled_files[[i]])
+#         ras = resample(ras, ref_file)
+#         backscatter_list[[i]] = ras
+#     }
+# }
+#
+# # Resample to lidar and calculate db
+# for (i in seq_along(resampled_files)){
+#     print(resampled_files[[i]])
+#     file = strsplit(resampled_files[[i]], .Platform$file.sep)[[1]] %>% tail(., n=1) %>% substr(., start = 1, stop = nchar(.)-4)
+#     file_name = paste0(file, "_crop.tolidar")
+#     file_name2 = paste0(file, "_crop.tolidar.db")
+#     file_ending = ".tif"
+#
+#     path = unlist(strsplit(resampled_files[[i]], .Platform$file.sep)[[1]])[1:length(strsplit(resampled_files[[i]], .Platform$file.sep)[[1]]) - 1] %>%
+#         paste(collapse = .Platform$file.sep)
+#     file_path = paste(path, paste0(file_name, file_ending), sep = .Platform$file.sep)
+#     file_path2 = paste(path, paste0(file_name2, file_ending), sep = .Platform$file.sep)
+#     r = raster::resample(x = raster(resampled_files[[i]]), y = raster(lidar), filename = file_path, overwrite = T)
+#     calc(r, fun = function(x){10 * log10(x)}, filename = file_path2, overwrite = T)
+# }
+#
+# # stack em
+# backscatter_stack = raster::stack(backscatter_list)
+#
 
 #################
 ##  COHERENCE  ##
@@ -113,22 +113,44 @@ for (i in 1:length(coherence_files)){
 pattern = "_topophase.cor.geo.tif$"
 coherence_files_tif = list.files(".", pattern = pattern, recursive = TRUE)
 
+
+############################
 # now reproject and resample
+# 50 m
+############################
 for (i in 1:length(coherence_files_tif)){
     file_name = strsplit(coherence_files_tif[[i]], .Platform$file.sep)[[1]] %>% tail(., n=1) %>% substr(., start = 1, stop = nchar(.)-4)
-    file_name = paste0(file_name, "_32632_20x20")
+    file_name = paste0(file_name, "_32632_50x50")
     file_ending = ".tif"
     path = unlist(strsplit(coherence_files_tif[[i]], .Platform$file.sep))[1:2]
     base_path = paste(path[[1]], path[[2]], sep = .Platform$file.sep)
     file_path = paste(base_path, paste0(file_name, file_ending), sep = .Platform$file.sep)
     if(!file.exists(file_path)){
     # build gdalwarp command
-    cmd = sprintf("gdalwarp -t_srs EPSG:32632 -tr 20 20 %s %s", coherence_files_tif[[i]], file_path)
-    system(cmd)}else print("20m Coherence in EPSG:32632 aleady exists")
+    cmd = sprintf("gdalwarp -t_srs EPSG:32632 -r med -tr 50 50 -dstnodata 0 %s %s", coherence_files_tif[[i]], file_path)
+    system(cmd)}else print("50m Coherence in EPSG:32632 aleady exists")
+}
+
+############################
+# now reproject and resample
+# 100 m
+############################
+
+for (i in 1:length(coherence_files_tif)){
+    file_name = strsplit(coherence_files_tif[[i]], .Platform$file.sep)[[1]] %>% tail(., n=1) %>% substr(., start = 1, stop = nchar(.)-4)
+    file_name = paste0(file_name, "_32632_100x100")
+    file_ending = ".tif"
+    path = unlist(strsplit(coherence_files_tif[[i]], .Platform$file.sep))[1:2]
+    base_path = paste(path[[1]], path[[2]], sep = .Platform$file.sep)
+    file_path = paste(base_path, paste0(file_name, file_ending), sep = .Platform$file.sep)
+    if(!file.exists(file_path)){
+        # build gdalwarp command
+        cmd = sprintf("gdalwarp -t_srs EPSG:32632 -r med -tr 100 100 -dstnodata 0 %s %s", coherence_files_tif[[i]], file_path)
+        system(cmd)}else print("100m Coherence in EPSG:32632 aleady exists")
 }
 
 # resample all coherence files to the ref backscatter to exactly match extents
-pattern = "topophase.cor.geo_32632_20x20.tif"
+pattern = "topophase.cor.geo_32632_50x50.tif"
 coherence_files_resampled_tif = list.files(".", pattern = pattern, recursive = T)
 for (i in 1:length(coherence_files_resampled_tif)){
     coh_ras = raster(coherence_files_resampled_tif[[i]])
