@@ -118,7 +118,14 @@ system(cmd)
 - read all backscatters
 
 ```{r readbackscatter}
-backscatter_paths = list.files("/home/robin/geodata/geo411/GEO411_FSH_Roda/snap_grd/final_GRDs_SNAP/")
+# locaetion on disk
+backscatter_paths = list.files("/home/robin/geodata/geo411/GEO411_FSH_Roda/snap_grd/final_GRDs_SNAP/", full.names = T)
 backscatter_paths = backscatter_paths %>% stringr::str_subset(., pattern = "Cal_TC.tif", negate = F)
+# load into list
+backscatter_list = lapply(backscatter_paths, function(x) raster(x))
+# make names
+names_backscatter = lapply(backscatter_list, function(x) paste0("bs_", substr(names(x), start=40, stop=45)))
+# apply names
+names(backscatter_list) = names_backscatter
 ```
 
