@@ -19,9 +19,6 @@ library(sf)
 library(mapview)
 library(magrittr)
 ```
-
-
-
 # Goals
 
 - The Goal of this script is to have TWO Dataframes at the end
@@ -99,8 +96,8 @@ sum(is.na(values(chm_fnf)))
 - reproject the chm to 32632
 - and write it
 ```{r writechm}
-chm_fnf_repro = raster::projectRaster(chm_fnf, crs = "+proj=utm +zone=32 +datum=WGS84 +units=m +no_defs")
-writeRaster(chm_fnf, "/home/robin/geodata/geo411/GEO411_FSH_Roda/ancillary_data/chm_20m_maskedtofnf_32632.tif")
+chm_fnf_repro = raster::projectRaster(chm_fnf, crs = crs(raster(chm_path)))
+writeRaster(chm_fnf_repro, "/home/robin/geodata/geo411/GEO411_FSH_Roda/ancillary_data/chm_20m_maskedtofnf_32632.tif", overwrite=T)
 ```
 
 - read the chm and resample it to 50m
@@ -108,24 +105,201 @@ writeRaster(chm_fnf, "/home/robin/geodata/geo411/GEO411_FSH_Roda/ancillary_data/
 ```{r readnewchm, echo=F}
 chm_new_path  = "/home/robin/geodata/geo411/GEO411_FSH_Roda/ancillary_data/chm_20m_maskedtofnf_32632.tif"
 chm_50m_path = "/home/robin/geodata/geo411/GEO411_FSH_Roda/ancillary_data/chm_50m_maskedtofnf_32632.tif"
+chm_100m_path = "/home/robin/geodata/geo411/GEO411_FSH_Roda/ancillary_data/chm_100m_maskedtofnf_32632.tif"
 cmd = sprintf("gdalwarp -tr 50 50 %s %s", chm_new_path, chm_50m_path)
+cmd2 = sprintf("gdalwarp -tr 100 100 %s %s", chm_new_path, chm_100m_path)
 system(cmd)
+system(cmd2)
 ```
 
 
-# Backscatter 
+# Backscatter
 
-- read all backscatters
+- read all backscatters and new CHM
 
 ```{r readbackscatter}
+# read chm
+chm = raster("/home/robin/geodata/geo411/GEO411_FSH_Roda/ancillary_data/chm_20m_maskedtofnf_32632.tif")
 # locaetion on disk
-backscatter_paths = list.files("/home/robin/geodata/geo411/GEO411_FSH_Roda/snap_grd/final_GRDs_SNAP/", full.names = T)
+backscatter_paths = list.files("/home/robin/geodata/geo411/GEO411_FSH_Roda/snap_grd/final_GRDs_SNAP", full.names = T)
 backscatter_paths = backscatter_paths %>% stringr::str_subset(., pattern = "Cal_TC.tif", negate = F)
 # load into list
-backscatter_list = lapply(backscatter_paths, function(x) raster(x))
+backscatter_raster = lapply(backscatter_paths, function(x) raster(x))
 # make names
-names_backscatter = lapply(backscatter_list, function(x) paste0("bs_", substr(names(x), start=40, stop=45)))
+names_backscatter = lapply(backscatter_raster, function(x) paste0("bs_", substr(names(x), start=40, stop=45)))
 # apply names
-names(backscatter_list) = names_backscatter
+names(backscatter_raster) = names_backscatter
+```
+
+- reproject all backscatter to 32632 and set the Source-NoData-Value to 0
+
+```{r reprojectbackscatter}
+for (i in seq_along(backscatter_paths)){
+  path = "/home/robin/geodata/geo411/GEO411_FSH_Roda/snap_grd/32632_NoData0_GRDS"
+  if(!dir.exists(path)) dir.create(path)
+  base_name = strsplit(backscatter_paths[[i]], .Platform$file.sep)[[1]] %>% tail(., n=1) %>% substr(., 40,45)
+  ending = ".tif"
+  file_name = paste(path, paste0(base_name, "_32632", ending), sep = .Platform$file.sep)
+  cmd = sprintf("gdalwarp -t_srs EPSG:32632 -srcnodata 0 %s %s", backscatter_paths[[i]], file_name)
+  system(cmd)
+}
+```
+- load backscatter back in
+
+```{r loadbackscatter}
+# naming convention
+backscatter_32632_paths = list.files("/home/robin/geodata/geo411/GEO411_FSH_Roda/snap_grd/32632_NoData0_GRDS", full.names = T)
+backscatter_32632_raster = lapply(backscatter_32632_paths, function(x) raster(x))
+names_backscatter = lapply(backscatter_32632_paths, function(x) paste0("bs_", substr(x, start=72, stop=77)))
+names(backscatter_32632_raster) = names_backscatter
+```
+
+- compute intersection between one backscatter and the chm
+
+```{r}
+# bs_sf = st_bbox(backscatter_32632_raster[[1]]) %>% st_as_sfc(., crs=32632)
+# chm_sf = st_bbox(chm) %>% st_as_sfc(., crs=32632)
+# bs_sf = st_transform(bs_sf, 32632)
+# chm_sf = st_transform(chm_sf, 32632)
+# # Calculate Intersection
+# intersec = st_intersection(bs_sf, chm_sf)
+# ints = intersec %>% st_sf()
+```
+
+
+- gdalwarp all backscatters to (50x50 and 100x100)
+```{r gdalwarpbs}
+# get all backscatter
+backscatter_paths = list.files("/home/robin/geodata/geo411/GEO411_FSH_Roda/snap_grd/32632_NoData0_GRDS/", full.names = T)
+resolutions = c("50 50", "100 100")
+for (i in resolutions){
+  for (j in seq_along(backscatter_paths)){
+    name_new = paste0(strsplit(backscatter_paths[[j]], .Platform$file.sep)[[1]] %>%  tail(., n=1) %>% substr(., start = 1, stop = nchar(.)-4), "_32632", "_", substr(i,1,2), "m", ".tif")
+    dir_new = "/home/robin/geodata/geo411/GEO411_FSH_Roda/snap_grd/backscatter_resampled_50_100m"
+    if(!dir.exists(dir_new)) dir.create(dir_new)
+    name_new = paste(dir_new, name_new, sep = .Platform$file.sep)
+    cmd = sprintf("gdalwarp -r med -tr %s  %s %s", i, backscatter_paths[[j]], name_new)
+    print(cmd)
+    system(cmd)
+    
+  }
+}
+```
+
+***
+***
+***
+
+END OF FIRST PREPROCESSING
+
+- load 50 and 100m chm
+```{r, eval=F}
+chm_50 = raster(chm_50m_path)
+chm_100 = raster(chm_100m_path)
+```
+
+- load 50m backscatter
+```{r, eval=F}
+backscatter_50m_paths = list.files("/home/robin/geodata/geo411/GEO411_FSH_Roda/snap_grd/final_GRDs_R/", full.names = T)
+backscatter_50m_paths = grep("_50m.tif", backscatter_50m_paths, value = T)
+backscatter_50m_raster = lapply(backscatter_50m_paths, function(x) raster(x))
+backscatter_100m_paths = list.files("/home/robin/geodata/geo411/GEO411_FSH_Roda/snap_grd/final_GRDs_R/", full.names = T)
+backscatter_100m_paths = grep("_10m.tif", backscatter_100m_paths, value = T)
+backscatter_100m_raster = lapply(backscatter_100m_paths, function(x) raster(x))
+```
+
+
+- crop and mask all backscatter to intersection
+```{r, eval=F}
+backscatter_32632_raster_cropped = lapply(backscatter_32632_raster, function(x) crop(x, ints))
+backscatter_32632_raster_masked = lapply(backscatter_32632_raster_cropped, function(x) crop(x, ints))
+# write them
+new_dir = "/home/robin/geodata/geo411/GEO411_FSH_Roda/snap_grd/maskedBackscatter"
+if(!dir.exists(new_dir)) dir.create(new_dir)
+for (i in seq_along(backscatter_32632_raster_masked)){
+  n = paste0(paste(new_dir, names(backscatter_32632_raster_masked)[[i]], sep = .Platform$file.sep), ".tif")
+  writeRaster(backscatter_32632_raster_masked[[i]], n)
+}
+```
+
+- crop and mask chm to intersection
+```{r, eval=F}
+chm_cropped_50 = crop(chm_50, ints)
+chm_masked_50 = mask(chm_cropped_50, ints)
+chm_cropped_100 = crop(chm_100, ints)
+chm_masked_100 = mask(chm_cropped_100, ints)
+# write it
+writeRaster(chm_masked_50, "/home/robin/geodata/geo411/GEO411_FSH_Roda/ancillary_data/chm_masked_to_intersection_50m.tif")
+writeRaster(chm_masked_100, "/home/robin/geodata/geo411/GEO411_FSH_Roda/ancillary_data/chm_masked_to_intersection_100m.tif")
+```
+
+
+- crop and mask backscatter to intersection
+
+```{r, eval=F}
+backscatter_100m_cropped_intersection = lapply(backscatter_100m_raster, function(x) crop(x, ints))
+backscatter_100m_masked_intersection = lapply(backscatter_100m_cropped_intersection, function(x) mask(x, ints))
+backscatter_50m_cropped_intersection = lapply(backscatter_50m_raster, function(x) crop(x, ints))
+backscatter_50m_masked_intersection = lapply(backscatter_50m_cropped_intersection, function(x) mask(x, ints))
+```
+
+- Resample chms to backscatter to get exactly equal extent
+```{r, eval=F}
+chm_masked_50 = resample(chm_masked_50, backscatter_50m_masked_intersection[[1]])
+chm_masked_50[chm_masked_50 < 0] = NA
+chm_masked_100 = resample(chm_masked_100, backscatter_100m_masked_intersection[[1]])
+chm_masked_100[chm_masked_100 < 0] = NA
+```
+
+- write Data
+
+```{r, eval=F}
+# write 50m Backscatter
+for (i in seq_along(backscatter_50m_masked_intersection)){
+  name = names(backscatter_50m_masked_intersection[[i]])
+  new_dir = "/home/robin/geodata/geo411/GEO411_FSH_Roda/snap_grd/masked_resampled_32632_backscatter"
+  if(!dir.exists(new_dir)) dir.create(new_dir)
+  name_final = paste(new_dir, paste0(name, ".tif"), sep=.Platform$file.sep)
+  writeRaster(backscatter_50m_masked_intersection[[i]], name_final)
+}
+```
+
+# Coherence
+
+- find Coherence
+
+```{r}
+files = list.files("/home/robin/geodata/geo411/GEO411_FSH_Roda", pattern = "topophase.cor.geo$", full.names = T, recursive = T)
+files = grep("HH|test", files, invert = T, value = T)
+```
+
+- gdal_translate coherence to make tiff
+```{r}
+new_dir = "/home/robin/geodata/geo411/GEO411_FSH_Roda/coherences"
+if(!dir.exists(new_dir)) dir.create(new_dir)
+dates = sapply(files, function(x) substr(x, 44, 60))
+files_new = paste(new_dir, paste0(dates, ".tif"), sep = .Platform$file.sep)
+# translate them
+for(i in seq_along(files)){
+  cmd = sprintf("gdal_translate -b 2 -a_nodata 0 %s %s", files[[i]], files_new[[i]])
+  system(cmd)
+}
+```
+
+
+- gdalwarp them to 32632 and 50x50 and 100x100
+
+```{r}
+resolutions = c("50 50", "100 100")
+files = list.files("/home/robin/geodata/geo411/GEO411_FSH_Roda/coherences", full.names = T)
+for (i in seq_along(resolutions)){
+  for (j in seq_along(files)){
+    base_path =  strsplit(files[[j]], split = .Platform$file.sep)
+    base_path = paste(base_path[[1]][1:lengths(base_path)-1], collapse = .Platform$file.sep)
+    date = substr(files[[j]], 55, 71)
+    file_path = paste(base_path, paste0(date, "_32632_", substr(resolutions[[i]],1,2), ".tif"), sep = .Platform$file.sep)
+    cmd = sprintf("gdalwarp -tr %s -r med -t_srs EPSG:32632 %s %s", resolutions[[i]], files[[j]], file_path)
+    system(cmd)
+}}
 ```
 
