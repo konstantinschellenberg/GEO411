@@ -4,7 +4,7 @@ library(ggplot2)
 
 # load data
 bs = raster("/home/robin/geodata/geo411/GEO411_FSH_Roda/snap_grd/backscatter_resampled_50_100m/150821_32632_32632_10m.tif")
-chm = raster("/home/robin/geodata/geo411/GEO411_FSH_Roda/ancillary_data/chm_100m_maskedtofnf_32632.tif")
+chm = raster("/home/robin/uni/semester2/geo411/git/GEO411/data/ancillary/chm_100m_maskedtofnf_32632.tif")
 
 # plot them
 plot(bs)

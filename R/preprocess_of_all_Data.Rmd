@@ -189,6 +189,21 @@ for (i in resolutions){
 ***
 ***
 ***
+- load backscatter and resample to firsst one to have matching extent
+
+```{r}
+backscatter = list.files("/home/robin/geodata/geo411/GEO411_FSH_Roda/snap_grd/32632_NoData0_GRDS/", full.names = T)
+backscatter_raster = lapply(backscatter, raster)
+ref = backscatter_raster[[1]]
+for(i in seq_along(backscatter)){
+  if(i != 1){
+    backscatter_raster[[i]] = resample(backscatter_raster[[i]], ref)
+  }
+}
+
+```
+
+
 
 END OF FIRST PREPROCESSING
 
