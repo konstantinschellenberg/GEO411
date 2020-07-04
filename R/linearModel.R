@@ -5,28 +5,35 @@ library(mgcv)
 library(sperrorest)
 library(scattermore)
 
-# load dataframe
-df_vars = readRDS("dev/final_df.RDS")
-# throw out all lines where there is one NA (not sure if this is the best way to impute data;)
-df_vars = df_vars[complete.cases(df_vars),]
-# give shorter names?
-names(df_vars) = c("chm",
-                   "bs_150821",
-                   "bs_151002",
-                   "bs_160219",
-                   "bs_180525",
-                   "bs_180720",
-                   "coh_15_15",
-                   "coh_15_16",
-                   "coh_18_18",
-                   "x",
-                   "y")
+options(max.print = 200, scipen = 100)
+
+# set environment to "model"
+env = "D:/Geodaten/Master/projects/GEO411/"
+setwd(env)
 
 
-# check class of each predictor
-struc = lapply(df_vars, class)
-struc.df = as.data.frame(do.call(rbind, struc))
-struc.df
+# LOADING DATASETS -------------------------------------------------------------
+
+trainsets = readRDS("model/dataframes/trainsets.RDS")
+testsets = readRDS("model/dataframes/testsets.RDS")
+
+# MULTILINEAR FIT --------------------------------------------------------------
+
+attach(trainsets[[1]])
+lm.fit = lm(chm ~ bs_150821 + bs_151002 + bs_160219 + bs_180525 + coh_15_15 + coh_15_16 + coh_15_16)
+
+
+# PREDICTION -------------------------------------------------------------------
+
+right = predict(lm.fit, testsets[[1]][,2:8]) %>%
+    cbind(testsets[[1]][10:11]) # get coordinates back/not really necessary here
+
+left = dfs[[1]] %>% select("chm", "x", "y")
+
+validation = left_join(left, right, by = c("x", "y"))
+plot(prediction$chm, prediction$.)
+
+# ------------------------------------------------------------------------------
 
 # make scatterplot of chm agains all backscatters
 # set up plotting grid
@@ -37,10 +44,5 @@ par(mfrow = c(p[[1]], p[[2]]))
 # scattermore <3
 for (i in 1:length(df_vars)){
     if(i < length(df_vars)-2){
-    scattermoreplot(df_vars[[1]], df_vars[[i+1]], xlim = c(0,50), ylim = c(0,3), main=paste("CHM x ", names(df_vars)[[i+1]]))}
+        scattermoreplot(df_vars[[1]], df_vars[[i+1]], xlim = c(0,50), ylim = c(0,3), main=paste("CHM x ", names(df_vars)[[i+1]]))}
 }
-
-# make model
-attach(df_vars)
-# aiiaiai
-lm0 = lm(chm ~ bs_150821 + bs_151002 + bs_160219 + bs_180525 + bs_180720)
