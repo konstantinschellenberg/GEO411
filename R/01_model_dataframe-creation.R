@@ -1,6 +1,9 @@
-#' GEO411 Modelling Preparation (1/2)
-#' Script to create a large dataframe of all data
+#' GEO411 Modelling Preparation
+#' Script to create a large dataframes from backscatter and coherence data for CH modelling
 #'
+#' 1. Full dataset
+#' 2. Prediction dataset
+#' 3. Training and Validation dataset
 #' All datasets are stored under /model/dataframes/ in the git repo (folder within gitignore)
 #'
 #' Init: 03.07.2020, Konstantin Schellenberg
@@ -16,6 +19,11 @@ options(max.print = 200, scipen = 100)
 # set environment to "model"
 env = "D:/Geodaten/Master/projects/GEO411/"
 setwd(env)
+
+# DELETE DATA IF NECESSARY -----------------------------------------------------
+
+files = c("model/dataframes/final_df.RDS", "model/dataframes/predictionset.RDS", "model/dataframes/trainingtestset.RDS")
+sapply(files, function(x) file.remove(x))
 
 # LOAD DATA --------------------------------------------------------------------
 
@@ -79,10 +87,12 @@ chm100 = chm100 %>% resample(dummy_raster100)
 list_chm_backscatter_coherence50 = do.call(c, list(chm50, rasters50))
 list_chm_backscatter_coherence100 = do.call(c, list(chm100, rasters100))
 
-# Make DataFrame ---------------------------------------------------------------
+##########################
+# 1. FULL DATASET (MASTER)
+##########################
 
 list_all = list(list_chm_backscatter_coherence50, list_chm_backscatter_coherence100)
-df_all = vector("list", length = length(list_all))
+dfs = vector("list", length = length(list_all))
 final_df = NULL
 
 for (h in seq_along(list_all)){
@@ -105,15 +115,53 @@ for (h in seq_along(list_all)){
         }
     }
     names(final_df) = names
-    df_all[[h]] = final_df
+    dfs[[h]] = final_df
 }
 
 # rename the master lists
-names(df_all) = c("df50", "df100")
+names(dfs) = c("df50", "df100")
 
+# save full dataset with all NAs and CHM
 if (!file.exists("model/dataframes/final_df.RDS")){
-    saveRDS(df_all, "model/dataframes/final_df.RDS")
+    saveRDS(dfs, "model/dataframes/final_df.RDS")
 }
 
-# the result are two dataframes with the extent where all scenes intersect.
-# NAs fill all gaps where no data is found
+# assign a new master dataset variable for later use
+master = dfs
+
+##########################
+# 2. PREDICTION DATASET
+##########################
+
+for (i in seq_along(master)){
+    df = master[[i]]
+    dfs[[i]] = select(df, -chm)
+    cat("Canopy Height removed from dataset")
+}
+
+# save prediction dataset without CHM
+if (!file.exists("model/dataframes/predictionset.RDS")){
+    saveRDS(dfs, "model/dataframes/predictionset.RDS")
+}
+
+##########################
+# 3. MODELLING DATASET
+##########################
+
+# IMPUTE
+# throw out all lines where there is one NA (not sure if this is the best way to impute data;)
+
+for (i in seq_along(master)){
+    df = master[[i]]
+    df = df[complete.cases(df),]
+
+    # still 0s inside, gdalwarp: dstnodata = 0 !!
+    dfs[[i]] = df
+    cat("NAs removed from the dataset")
+}
+
+# dataset with removed NAs
+if (!file.exists("model/dataframes/trainingtestset.RDS")){
+    saveRDS(dfs, "model/dataframes/trainingtestset.RDS")
+}
+# (End)
