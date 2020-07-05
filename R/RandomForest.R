@@ -55,22 +55,22 @@ learner$param_set$values = list(num.trees =500L, mtry = 4, importance = "impurit
 
 # optional: FILTERING ----------------------------------------------------------
 
-local({
-
-    filter = flt("importance", learner = learner)
-    filter$calculate(task)
-
-
-    head(as.data.table(filter), 50)
-    tail(as.data.table(filter), 50)
-
-    a = as.data.table(filter)
-    b = substr(a$feature, start = 1,stop = 3) %>%
-        as.factor()
-
-    plot(x = a$score, pch = 16, col = as.factor(b), main = "Predicting layers in RF Model",
-         xlab = "layer", ylab = "score")
-})
+# local({
+#
+#     filter = flt("importance", learner = learner)
+#     filter$calculate(task)
+#
+#
+#     head(as.data.table(filter), 50)
+#     tail(as.data.table(filter), 50)
+#
+#     a = as.data.table(filter)
+#     b = substr(a$feature, start = 1,stop = 3) %>%
+#         as.factor()
+#
+#     plot(x = a$score, pch = 16, col = as.factor(b), main = "Predicting layers in RF Model",
+#          xlab = "layer", ylab = "score")
+# })
 
 
 # TUNING seperately ------------------------------------------------------------
@@ -96,9 +96,16 @@ instance = TuningInstance$new(
 )
 
 result = tuner$tune(instance)
+saveRDS(instance, "model/RF/instance.RDS")
+instance = readRDS("model/RF/instance.RDS")
 
 # results:
 instance$archive(unnest = "params")[, c("num.trees", "mtry", "terminator")]
+
+# Reviewed until here.
+# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 # TUNING automatically ---------------------------------------------------------
 
