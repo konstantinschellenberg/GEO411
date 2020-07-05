@@ -41,6 +41,10 @@ for (i in seq_along(dfs)){
 }
 
 # BOXPLOT ----------------------------------------------------------------------
+#' todo:
+#' rm.na aus allen
+#' xaxis immer 40m
+#'
 
 plot_dir = "model/plots/"
 theme_set(theme_classic())
@@ -56,29 +60,33 @@ text = list(
 for (i in seq_along(dfs)){
 
     df = dfs[[i]]
+    df = df[complete.cases(df), ] # wipe once more
 
     # define color ramp for coherences
     colfunc = colorRampPalette(c("white", "darkgreen"))
 
     # coherences
     g1 = ggplot(df, aes(height, coh_15_15)) +
-        geom_boxplot(aes(fill = df$height), outlier.size = 0.5) +
+        geom_boxplot(aes(fill = df$height), outlier.size = 0.2) +
         scale_x_discrete(breaks = seq(5, 50, 5)) +
         scale_y_continuous(limits = c(0,1)) +
+        coord_cartesian(xlim =c(0, 35)) +
         scale_fill_discrete(type = colfunc(max(as.numeric(df$height), na.rm = T))) +
         ylab("Coherence 2015-08-21/2015-10-02") +
         theme(legend.position = "none")
     g2 = ggplot(df, aes(height, coh_15_16, fill = "green")) +
-        geom_boxplot(aes(fill = df$height), outlier.size = 0.5) +
+        geom_boxplot(aes(fill = df$height), outlier.size = 0.2) +
         scale_x_discrete(breaks = seq(5, 50, 5)) +
         scale_y_continuous(limits = c(0,1)) +
+        coord_cartesian(xlim =c(0, 35)) +
         scale_fill_discrete(type = colfunc(max(as.numeric(df$height), na.rm = T))) +
         ylab("Coherence 2015-10-02/2016-02-19") +
         theme(legend.position = "none")
     g3 = ggplot(df, aes(height, coh_18_18, fill = "green")) +
-        geom_boxplot(aes(fill = df$height), outlier.size = 0.5) +
+        geom_boxplot(aes(fill = df$height), outlier.size = 0.2) +
         scale_x_discrete(breaks = seq(5, 50, 5)) +
         scale_y_continuous(limits = c(0,1)) +
+        coord_cartesian(xlim =c(0, 35)) +
         scale_fill_discrete(type = colfunc(max(as.numeric(df$height), na.rm = T))) +
         ylab("Coherence 2018-05-25/2018-07-20") +
         theme(legend.position = "none")
@@ -92,42 +100,47 @@ for (i in seq_along(dfs)){
     colfunc = colorRampPalette(c("white", "red"))
 
     h1 = ggplot(df, aes(height, bs_150821)) +
-        geom_boxplot(aes(fill = df$height), outlier.size = 0.5) +
+        geom_boxplot(aes(fill = df$height), outlier.size = 0.2) +
         stat_boxplot(geom ='errorbar', width = 0.6) +
         scale_x_discrete(breaks = seq(5, 50, 5)) +
         scale_y_continuous(limits = c(0, 0.2)) +
+        coord_cartesian(xlim =c(0, 35)) +
         scale_fill_discrete(type = colfunc(max(as.numeric(df$height), na.rm = T))) +
         ylab("Backscatter σ0 linear 2015-08-21") +
         theme(legend.position = "none")
     h2 = ggplot(df, aes(height, bs_151002)) +
-        geom_boxplot(aes(fill = df$height), outlier.size = 0.5) +
+        geom_boxplot(aes(fill = df$height), outlier.size = 0.2) +
         stat_boxplot(geom ='errorbar', width = 0.6) +
         scale_x_discrete(breaks = seq(5, 50, 5)) +
         scale_y_continuous(limits = c(0, 0.2)) +
+        coord_cartesian(xlim =c(0, 35)) +
         scale_fill_discrete(type = colfunc(max(as.numeric(df$height), na.rm = T))) +
         ylab("Backscatter σ0 linear 2015-10-02") +
         theme(legend.position = "none")
     h3 = ggplot(df, aes(height, bs_160219)) +
-        geom_boxplot(aes(fill = df$height), outlier.size = 0.5) +
+        geom_boxplot(aes(fill = df$height), outlier.size = 0.2) +
         stat_boxplot(geom ='errorbar', width = 0.6) +
         scale_x_discrete(breaks = seq(5, 50, 5)) +
         scale_y_continuous(limits = c(0, 0.2)) +
+        coord_cartesian(xlim =c(0, 35)) +
         scale_fill_discrete(type = colfunc(max(as.numeric(df$height), na.rm = T))) +
         ylab("Backscatter σ0 linear 2016-02-19") +
         theme(legend.position = "none")
     h4 = ggplot(df, aes(height, bs_180525)) +
-        geom_boxplot(aes(fill = df$height), outlier.size = 0.5) +
+        geom_boxplot(aes(fill = df$height), outlier.size = 0.2) +
         stat_boxplot(geom ='errorbar', width = 0.6) +
         scale_x_discrete(breaks = seq(5, 50, 5)) +
         scale_y_continuous(limits = c(0, 0.2)) +
+        coord_cartesian(xlim =c(0, 35)) +
         scale_fill_discrete(type = colfunc(max(as.numeric(df$height), na.rm = T))) +
         ylab("Backscatter σ0 linear 2018-05-25") +
         theme(legend.position = "none")
     h5 = ggplot(df, aes(height, bs_180720)) +
-        geom_boxplot(aes(fill = df$height), outlier.size = 0.5) +
+        geom_boxplot(aes(fill = df$height), outlier.size = 0.2) +
         stat_boxplot(geom ='errorbar', width = 0.6) +
         scale_x_discrete(breaks = seq(5, 50, 5)) +
         scale_y_continuous(limits = c(0, 0.2)) +
+        coord_cartesian(xlim =c(0, 35)) +
         scale_fill_discrete(type = colfunc(max(as.numeric(df$height), na.rm = T))) +
         ylab("Backscatter σ0 linear 2018-07-20") +
         theme(legend.position = "none")

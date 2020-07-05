@@ -13,17 +13,20 @@ library(mlr3spatiotempcv)
 library(mlr3learners)
 library(mlr3filters)
 library(mlr3tuning)
+library(tidyverse)
+library(sf)
+library(raster)
 
 # DATA -------------------------------------------------------------------------
 
-dfs = readRDS("model/dataframes/final_df.RDS")
-datasets = readRDS("model/dataframes/datasets.RDS")
-trainsets = readRDS("model/dataframes/trainsets.RDS")
-testsets = readRDS("model/dataframes/testsets.RDS")
-predsets = readRDS("model/dataframes/predsets.RDS")
+trainingtestset = readRDS("model/dataframes/trainingtestset.RDS")
+predictionset = readRDS("model/dataframes/predictionset.RDS")
 
 # vorerst nur res_50 einladen
-input = datasets[["df50"]]
+input = trainingtestset[["df50"]]
+predictionset = predictionset[["df50"]]
+input = trainingtestset[["df100"]]
+predictionset = predictionset[["df100"]]
 
 # CREATE TASK ------------------------------------------------------------------
 mlr_reflections$task_types # task types available
@@ -50,7 +53,7 @@ learner = lrn("regr.ranger", predict_type = "response")
 learner$param_set$ids()
 
 # set built-in filter & hyperparameters
-learner$param_set$values = list(num.trees =500L, mtry = 4, importance = "impurity")
+learner$param_set$values = list(num.trees =500L, mtry = 1, importance = "impurity")
 
 
 # optional: FILTERING ----------------------------------------------------------
@@ -75,65 +78,83 @@ learner$param_set$values = list(num.trees =500L, mtry = 4, importance = "impurit
 
 # TUNING seperately ------------------------------------------------------------
 
-library("paradox")
-tune = ParamSet$new(list(
-    ParamInt$new("num.trees", lower = 1, upper = 500),
-    ParamInt$new("mtry", lower = 1, upper = 4)
-))
+hyperparameters = function(){
+    library("paradox")
+    tune = ParamSet$new(list(
+        ParamInt$new("num.trees", lower = 1, upper = 500),
+        ParamInt$new("mtry", lower = 1, upper = 4)
+    ))
 
-measures = msr("regr.rmse")
-terminator = term("evals", n_evals = 20)
-tuner = tnr("grid_search", resolution = 5)
-resampling = rsmp("repeated-spcv-coords", folds = 6L, repeats = 2L)
+    measures = msr("regr.rmse")
+    terminator = term("evals", n_evals = 10)
+    tuner = tnr("grid_search", resolution = 5)
+    resampling = rsmp("repeated-spcv-coords", folds = 3L, repeats = 5L)
 
-instance = TuningInstance$new(
-    task = task,
-    learner = learner,
-    resampling = resampling,
-    measures = measures,
-    param_set = tune,
-    terminator = terminator
+    instance = TuningInstance$new(
+        task = task,
+        learner = learner,
+        resampling = resampling,
+        measures = measures,
+        param_set = tune,
+        terminator = terminator
+    )
+
+    result = tuner$tune(instance)
+    saveRDS(instance, "model/RF/instance.RDS")
+
+
+    return(instance)
+}
+
+# run
+# instance = hyperparameters()
+instance = readRDS("model/RF/instance.RDS")
+# results:
+paste(
+cat("best performance for is: ", instance$result$perf, "m RMSE\n"),
+cat("With the following hyperparameter options:\n\n"),
+print(instance[["result"]][["params"]])
 )
 
-result = tuner$tune(instance)
-saveRDS(instance, "model/RF/instance.RDS")
-instance = readRDS("model/RF/instance.RDS")
+# num.trees =500L, mtry = 1 --> ideal for our dataset
 
-# results:
-instance$archive(unnest = "params")[, c("num.trees", "mtry", "terminator")]
-
-# Reviewed until here.
-# ------------------------------------------------------------------------------
-# ------------------------------------------------------------------------------
-# ------------------------------------------------------------------------------
+instance$archive(unnest = "params")[, c("num.trees", "mtry")]
 
 # TUNING automatically ---------------------------------------------------------
 
-at = AutoTuner$new(
-    learner = learner,
-    resampling = resampling,
-    measures = measures,
-    tune_ps = tune,
-    terminator = terminator,
-    tuner = tuner
-)
-at$train(task)
+hyperparameters2 = function(){
+    library("paradox")
+    tune = ParamSet$new(list(
+        ParamInt$new("num.trees", lower = 1, upper = 500),
+        ParamInt$new("mtry", lower = 1, upper = 4)
+    ))
+    measures = msr("regr.rmse")
+    terminator = term("evals", n_evals = 10)
+    tuner = tnr("grid_search", resolution = 5)
+    resampling = rsmp("repeated-spcv-coords", folds = 3L, repeats = 5L)
+    at = AutoTuner$new(
+        learner = learner,
+        resampling = resampling,
+        measures = measures,
+        tune_ps = tune,
+        terminator = terminator,
+        tuner = tuner
+    )
+    return(at)
+}
 
-saveRDS(at, paste0(path_rds, "automatedTunedLearner_eval20.rds"))
-
-at = readRDS(paste0(path_rds, "automatedTunedLearner_eval20.rds"))
-
-at$predict(task)
+at = hyperparameters2() %>% print()
 
 # RESAMPLE ---------------------------------------------------------------------
 
-future::plan("multiprocess") # anmerkung: future::plan turns over order of logging in the resample algorithm! -> Patrick S sagen
+library(future)
+future::plan("cluster")
 
-as.data.table(mlr_resamplings) # error -> report Patrick S
+# available resampling methods:
 mlr_resamplings
 
 # setup resampling task
-resampling = rsmp("repeated-spcv-coords", folds = 6L, repeats = 10L)
+resampling = rsmp("repeated-spcv-coords", folds = 2L, repeats = 2L)
 
 resampling$instantiate(task)
 resampling$iters
@@ -144,20 +165,23 @@ str(resampling$train_set(1))
 str(resampling$test_set(1))
 
 # run: TIME INTENSIVE
+# Fehler in unserialize(node$con) :
+#     Failed to retrieve the value of MultisessionFuture (future_lapply-3) from cluster SOCKnode #3 (PID 92 on localhost ‘localhost’). The reason reported was ‘Lesefehler aus Verbindung’. Post-mortem diagnostic: No process exists with this PID, i.e. the localhost worker is no longer alive.
 rr = mlr3::resample(task, learner, resampling, store_models = TRUE)
 
 # save result:
 c = 1
 if (c == 1) {
-    write_rds(rr, paste0(path_developement, "rf_acc/ResamplingResult_v.rds"))
-    rr = readRDS(paste0(path_developement, "rf_acc/ResamplingResult_rn.rds"))
+    saveRDS(rr, "model/RF/ResamplingResult50.rds")
 }
+
+rr = readRDS("model/RF/ResamplingResult50.rds")
 
 ### results
 mlr_measures
-rr$aggregate(measures = msr("classif.acc"))
+rr$aggregate(measures = msr("rmse"))
 rr$aggregate()
-rr$score(msr("classif.acc"))
+rr$score(msr("regr.rmse"))
 
 ### plotting resampling results
 # spatial cross-validation Brenning et al.
@@ -167,12 +191,10 @@ autoplot(resampling, task)
 autoplot(rr)
 autoplot(rr, type = "histogram", bins = 30L)
 
-
 # PREDICT ON TEST --------------------------------------------------------------
+
 pred_test = rr$prediction()
-
 head(fortify(pred_test))
-
 as.data.table(pred_test)
 
 a = pred_test$confusion
@@ -188,10 +210,10 @@ autoplot(pred_test)
 # TRAIN ------------------------------------------------------------------------
 
 learner$train(task)
-print(learner$model)
 
 # save model:
-saveRDS(learner, paste0(path_rds, "Learner.rds"))
+# saveRDS(learner, "model/RF/model.RDS")
+readRDS()
 
 # PREDICT ----------------------------------------------------------------------
 
@@ -207,13 +229,38 @@ saveRDS(learner, paste0(path_rds, "Learner.rds"))
 # pred = learner$train(task)$predict_newdata(newdata = newdata.split1)
 # ------------------------------------------------------------------------------
 
+newdata = predictionset[complete.cases(predictionset), ] %>% as.data.table()
+
+sum(is.na(newdata))
+nrow(newdata)
+nrow(input)
+colnames(newdata)
+colnames(input)
 
 pred = learner$predict_newdata(task = task, newdata = newdata)
 
-pred$confusion
-pred$prob
+pred$predict_types
 pred$response
 
+output = cbind(response = pred$response, x = newdata$x, y = newdata$y)
+out4 = output %>% as.data.table()
+
+# make sf coords
+out3 = st_as_sf(out4, coords = c("x", "y"))
+
+# set crs
+st_crs(out3) = 32632
+
+# to sp for gridding, functionality is not yet found in sf... st_rasterize may work in `stars`
+out2 = as(out3, "Spatial")
+
+# gridding
+gridded(out2) = TRUE
+
+out = stack(out2) #%>% trim()
+
+# Quickplot
+plot(out)
 
 ### Stats on the prediction
 autoplot(pred)
@@ -221,6 +268,35 @@ head(as.data.table(pred))
 
 # EXPORT -----------------------------------------------------------------------
 
-output = data.table::as.data.table(pred)
+# define output function
+exporting = function(output, input){
 
-exporting(output = output, input = newdata.split2, filepath = paste0(path_prediction, "02-12_rightbottom_split1_red_nir_vh"))
+    # bind coords on data.table
+    out4 = cbind(output, x = input$x, y = input$y)
+
+    # make sf coords
+    out3 = st_as_sf(out4, coords = c("x", "y"))
+
+    # set crs
+    st_crs(out3) = 32632
+
+    # to sp for gridding, functionality is not yet found in sf... st_rasterize may work in `stars`
+    out2 = as(out3, "Spatial")
+
+    # gridding
+    gridded(out2) = TRUE
+    class(out2)
+
+    out = stack(out2) #%>% trim()
+    return(out)
+
+}
+
+# convert results to raster*
+# raster_prediction = exporting(pred, input)
+
+
+
+# SAVE PREDICTION --------------------------------------------------------------
+writeRaster(out, filename = "model/RF/prediction100m",
+            format="GTiff", datatype='FLT4S', overwrite=TRUE, na.rm=TRUE)
