@@ -42,74 +42,97 @@ for (i in seq_along(dfs)){
 
 # BOXPLOT ----------------------------------------------------------------------
 
+plot_dir = "model/plots/"
 theme_set(theme_classic())
+theme(legend.position = "none")
+
+text = list(
+    res50 = list(main = list(coh = c("Coherence - Canopy Height Resolution 50 m"), bsc = c("Backscatter - Canopy Height Resolution 50 m")),
+                 filename = c("CHM-COH_50m", "CHM-BSC_50m")),
+    res100 = list(main = list(coh = c("Coherence - Canopy Height Resolution 100 m"), bsc = c("Backscatter - Canopy Height Resolution 100 m")),
+                  filename = c("CHM-COH_100m", "CHM-BSC_100m"))
+)
 
 for (i in seq_along(dfs)){
+
     df = dfs[[i]]
+
+    # define color ramp for coherences
+    colfunc = colorRampPalette(c("white", "darkgreen"))
+
     # coherences
-    g1 = ggplot(df, aes(height, coh_15_15, fill = "green")) +
-        geom_boxplot()
-    g2 = ggplot(df, aes(height, coh_15_16)) +
-        geom_boxplot()
-    g3 = ggplot(df, aes(height, coh_18_18)) +
-        geom_boxplot()
+    g1 = ggplot(df, aes(height, coh_15_15)) +
+        geom_boxplot(aes(fill = df$height), outlier.size = 0.5) +
+        scale_x_discrete(breaks = seq(5, 50, 5)) +
+        scale_y_continuous(limits = c(0,1)) +
+        scale_fill_discrete(type = colfunc(max(as.numeric(df$height), na.rm = T))) +
+        ylab("Coherence 2015-08-21/2015-10-02") +
+        theme(legend.position = "none")
+    g2 = ggplot(df, aes(height, coh_15_16, fill = "green")) +
+        geom_boxplot(aes(fill = df$height), outlier.size = 0.5) +
+        scale_x_discrete(breaks = seq(5, 50, 5)) +
+        scale_y_continuous(limits = c(0,1)) +
+        scale_fill_discrete(type = colfunc(max(as.numeric(df$height), na.rm = T))) +
+        ylab("Coherence 2015-10-02/2016-02-19") +
+        theme(legend.position = "none")
+    g3 = ggplot(df, aes(height, coh_18_18, fill = "green")) +
+        geom_boxplot(aes(fill = df$height), outlier.size = 0.5) +
+        scale_x_discrete(breaks = seq(5, 50, 5)) +
+        scale_y_continuous(limits = c(0,1)) +
+        scale_fill_discrete(type = colfunc(max(as.numeric(df$height), na.rm = T))) +
+        ylab("Coherence 2018-05-25/2018-07-20") +
+        theme(legend.position = "none")
     plots = list(g1, g2, g3)
-    arr1 = grid.arrange(grobs = plots, nrow = 3, top = "top",
-                 bottom = grid::grid.text("gridtext", gp = gpar(fontface = 3, fontsize = 9, hjust = 1, x = 1)))
+    grid.arrange(grobs = plots, nrow = 3, top = text[[i]]$main$coh,
+                 bottom = grid::grid.text("", gp = gpar(fontface = 3, fontsize = 9, hjust = 1, x = 1))) %>%
+        ggplot2::ggsave(filename = paste0(text[[i]]$filename[1], ".svg"), path = plot_dir, device = "svg", limitsize = F, width = 4, height = 10)
 
-   h1 = ggplot(df, aes(height, bs_150821)) +
-        geom_boxplot(aes(fill = "red")) +
-        stat_boxplot(geom ='errorbar', width = 0.6)
+    # new colorramp for backscatter
+    # colfunc = colorRampPalette(c("white", "#556B2F")) # Olivgrün
+    colfunc = colorRampPalette(c("white", "red"))
 
+    h1 = ggplot(df, aes(height, bs_150821)) +
+        geom_boxplot(aes(fill = df$height), outlier.size = 0.5) +
+        stat_boxplot(geom ='errorbar', width = 0.6) +
+        scale_x_discrete(breaks = seq(5, 50, 5)) +
+        scale_y_continuous(limits = c(0, 0.2)) +
+        scale_fill_discrete(type = colfunc(max(as.numeric(df$height), na.rm = T))) +
+        ylab("Backscatter σ0 linear 2015-08-21") +
+        theme(legend.position = "none")
     h2 = ggplot(df, aes(height, bs_151002)) +
-        geom_boxplot()
+        geom_boxplot(aes(fill = df$height), outlier.size = 0.5) +
+        stat_boxplot(geom ='errorbar', width = 0.6) +
+        scale_x_discrete(breaks = seq(5, 50, 5)) +
+        scale_y_continuous(limits = c(0, 0.2)) +
+        scale_fill_discrete(type = colfunc(max(as.numeric(df$height), na.rm = T))) +
+        ylab("Backscatter σ0 linear 2015-10-02") +
+        theme(legend.position = "none")
     h3 = ggplot(df, aes(height, bs_160219)) +
-        geom_boxplot()
+        geom_boxplot(aes(fill = df$height), outlier.size = 0.5) +
+        stat_boxplot(geom ='errorbar', width = 0.6) +
+        scale_x_discrete(breaks = seq(5, 50, 5)) +
+        scale_y_continuous(limits = c(0, 0.2)) +
+        scale_fill_discrete(type = colfunc(max(as.numeric(df$height), na.rm = T))) +
+        ylab("Backscatter σ0 linear 2016-02-19") +
+        theme(legend.position = "none")
     h4 = ggplot(df, aes(height, bs_180525)) +
-        geom_boxplot()
+        geom_boxplot(aes(fill = df$height), outlier.size = 0.5) +
+        stat_boxplot(geom ='errorbar', width = 0.6) +
+        scale_x_discrete(breaks = seq(5, 50, 5)) +
+        scale_y_continuous(limits = c(0, 0.2)) +
+        scale_fill_discrete(type = colfunc(max(as.numeric(df$height), na.rm = T))) +
+        ylab("Backscatter σ0 linear 2018-05-25") +
+        theme(legend.position = "none")
     h5 = ggplot(df, aes(height, bs_180720)) +
-        geom_boxplot()
+        geom_boxplot(aes(fill = df$height), outlier.size = 0.5) +
+        stat_boxplot(geom ='errorbar', width = 0.6) +
+        scale_x_discrete(breaks = seq(5, 50, 5)) +
+        scale_y_continuous(limits = c(0, 0.2)) +
+        scale_fill_discrete(type = colfunc(max(as.numeric(df$height), na.rm = T))) +
+        ylab("Backscatter σ0 linear 2018-07-20") +
+        theme(legend.position = "none")
     plots = list(h1, h2, h3, h4, h5)
-    grid.arrange(grobs = plots, nrow = 3, top = "top",
-                 bottom = grid::grid.text("gridtext", gp = gpar(fontface = 3, fontsize = 9, hjust = 1, x = 1)))
-
-
-    c# saveRDS()
+    grid.arrange(grobs = plots, nrow = 3, top = text[[i]]$main$bsc,
+                 bottom = grid::grid.text("", gp = gpar(fontface = 3, fontsize = 9, hjust = 1, x = 1))) %>%
+        ggplot2::ggsave(filename = paste0(text[[i]]$filename[2], ".svg"), path = plot_dir, device = "svg", limitsize = F, width = 8, height = 10)
 }
-
-# backscatter
-ggplot(df, aes(height, bs_150821)) +
-    geom_boxplot()
-
-
-
-
-par(mfrow = c(3,3))
-
-# DEPRECATED -------------------------------------------------------------------
-# trainsets = vector("list", 2)
-# testsets = vector("list", 2)
-#
-# set.seed(100)
-#
-# for (i in seq_along(dfs)){
-#     df = dfs[[i]]
-#
-#     # sample 70% of the data
-#     train_set = sample(nrow(df), 0.7 * nrow(df))
-#     train_set = df[train_set, ]
-#     # get the remaining 30% of the data
-#     test_set = setdiff(seq_len(nrow(df)), train_set)
-#     test_set = df[test_set, ]
-#
-#     trainsets[[i]] = train_set
-#     testsets[[i]] = test_set
-#     cat("Train and Validation Dataset created")
-# }
-#
-# if (!file.exists("model/dataframes/trainsets.RDS")){
-#     saveRDS(trainsets, "model/dataframes/trainsets.RDS")
-# }
-# if (!file.exists("model/dataframes/testsets.RDS")){
-#     saveRDS(testsets, "model/dataframes/testsets.RDS")
-# }
