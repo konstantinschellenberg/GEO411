@@ -314,7 +314,7 @@ list_chm_backscatter_coherence200 = do.call(c, list(chm200, rasters200))
 # Make DataFrame ---------------------------------------------------------------
 
 list_all = list(list_chm_backscatter_coherence50, list_chm_backscatter_coherence100, list_chm_backscatter_coherence200)
-df_all = vector("list", length = length(list_all))
+dfs = vector("list", length = length(list_all))
 final_df = NULL
 
 for (h in seq_along(list_all)){
@@ -337,63 +337,53 @@ for (h in seq_along(list_all)){
         }
     }
     names(final_df) = names
-    df_all[[h]] = final_df
+    dfs[[h]] = final_df
 }
 
 # rename the master lists
-names(df_all) = c("res_50", "res_100", "res_200")
+names(dfs) = c("df50", "df100", "df200")
 
+# save full dataset with all NAs and CHM
 if (!file.exists("model/dataframes/final_df.RDS")){
-    saveRDS(df_all, "model/dataframes/final_df.RDS")
+    saveRDS(dfs, "model/dataframes/final_df.RDS")
 }
 
-# load dataframe
-df50 = readRDS("model/dataframes/final_df.RDS")[[1]]
-df100 = readRDS("model/dataframes/final_df.RDS")[[2]]
-df200 = readRDS("model/dataframes/final_df.RDS")[[3]]
+# assign a new master dataset variable for later use
+master = dfs
 
+##########################
+# 2. PREDICTION DATASET
+##########################
 
-# IMPUTE -----------------------------------------------------------------------
+for (i in seq_along(master)){
+    df = master[[i]]
+    dfs[[i]] = select(df, -chm)
+    cat("Canopy Height removed from dataset")
+}
+
+# save prediction dataset without CHM
+if (!file.exists("model/dataframes/predictionset.RDS")){
+    saveRDS(dfs, "model/dataframes/predictionset.RDS")
+}
+
+##########################
+# 3. MODELLING DATASET
+##########################
+
+# IMPUTE
 # throw out all lines where there is one NA (not sure if this is the best way to impute data;)
 
-dfs = list(df50 = df50, df100 = df100, df200=df200)
-
-for (i in seq_along(dfs)){
-    df = dfs[[i]]
+for (i in seq_along(master)){
+    df = master[[i]]
     df = df[complete.cases(df),]
 
     # still 0s inside, gdalwarp: dstnodata = 0 !!
-
-    # rename colnames
-    names(df) = names
     dfs[[i]] = df
+    cat("NAs removed from the dataset\n")
 }
 
-# CATEGORISATION ---------------------------------------------------------------
-#' Aim is to assign incrementing categories of CH for boxplot of variable relationship
-
-for (i in seq_along(dfs)){
-    df = dfs[[i]]
-    df = dfs[[1]] %>% as.data.table()
-
-    breaks = seq(floor(min(df[,chm])), floor(max(df[,chm])))
-    labels = as.character(breaks)
-    labels = labels[1:length(labels) - 1] # remove last entry
-
-    df[, height:= cut(chm, breaks = breaks, labels = labels)]
-
-    # df[, table(height)]
-    # df %>% select(chm, height) %>% arrange(height)
-    dfs[[i]] = df
+# dataset with removed NAs
+if (!file.exists("model/dataframes/trainingtestset.RDS")){
+    saveRDS(dfs, "model/dataframes/trainingtestset.RDS")
 }
-
-# BOXPLOT ----------------------------------------------------------------------
-
-# get one dataframe
-df = dfs[[3]]
-
-ggplot(df, aes(height, coh_15_15)) +
-    geom_boxplot()
-
-par(mfrow = c(3,3))
-
+# (End)

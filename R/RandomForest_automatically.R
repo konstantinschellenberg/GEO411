@@ -21,7 +21,7 @@ library(ggplot2)
 # OUTPUT FUNCTION --------------------------------------------------------------
 
 p.rasterise = function(prediction, newdata){
-    output = cbind(response = pred$response, x = newdata$x, y = newdata$y)
+    output = cbind(response = prediction$response, x = newdata$x, y = newdata$y)
     out4 = output %>% as.data.table()
     # make sf coords
     out3 = st_as_sf(out4, coords = c("x", "y"))
@@ -73,6 +73,6 @@ for (i in seq_along(trainingtestset)){
     writeRaster(out, filename = outpath, format="GTiff", datatype='FLT4S', overwrite=TRUE, na.rm=TRUE)
 
     # clean env
-    rm(list=ls())
+    #rm(list=ls())
 }
 
