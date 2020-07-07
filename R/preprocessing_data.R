@@ -64,10 +64,13 @@ writeRaster(chm_fnf_repro, "/home/robin/geodata/geo411/GEO411_FSH_Roda/ancillary
 chm_new_path  = "/home/robin/geodata/geo411/GEO411_FSH_Roda/ancillary_data/chm_20m_maskedtofnf_32632.tif"
 chm_50m_path = "/home/robin/geodata/geo411/GEO411_FSH_Roda/ancillary_data/chm_50m_maskedtofnf_32632.tif"
 chm_100m_path = "/home/robin/geodata/geo411/GEO411_FSH_Roda/ancillary_data/chm_100m_maskedtofnf_32632.tif"
+chm_200m_path = "/home/robin/geodata/geo411/GEO411_FSH_Roda/ancillary_data/chm_200m_maskedtofnf_32632.tif"
 cmd = sprintf("gdalwarp -tr 50 50 %s %s", chm_new_path, chm_50m_path)
 cmd2 = sprintf("gdalwarp -tr 100 100 %s %s", chm_new_path, chm_100m_path)
+cmd3 = sprintf("gdalwarp -tr 200 200 %s %s", chm_new_path, chm_200m_path)
 system(cmd)
 system(cmd2)
+system(cmd3)
 
 # move both CHMs to git repo
 # find git datadirectory
@@ -75,6 +78,8 @@ a = list.dirs(path.expand("~"))
 datadir = grep("GEO411/data/ancillary", a, value = T)
 cmd50 = sprintf("cp %s %s", chm_50m_path, datadir)
 cmd100 = sprintf("cp %s %s", chm_100m_path, datadir)
+cmd200 = sprintf("cp %s %s", chm_200m_path, datadir)
+system(cmd200)
 system(cmd100)
 system(cmd50)
 
@@ -163,11 +168,11 @@ for(i in seq_along(backscatter_extents)){
 # get all backscatter
 # and reprohect them to 50 and 100m
 backscatter_paths = list.files("/home/robin/geodata/geo411/GEO411_FSH_Roda/snap_grd/32632_NoData0_GRDS/", full.names = T)
-resolutions = c("50 50", "100 100")
+resolutions = c("50 50", "100 100", "200 200")
 for (i in resolutions){
     for (j in seq_along(backscatter_paths)){
         name_new = paste0(strsplit(backscatter_paths[[j]], .Platform$file.sep)[[1]] %>%  tail(., n=1) %>% substr(., start = 1, stop = nchar(.)-4), "_32632", "_", substr(i,1,2), "m", ".tif")
-        dir_new = "/home/robin/geodata/geo411/GEO411_FSH_Roda/snap_grd/backscatter_resampled_50_100m"
+        dir_new = "/home/robin/geodata/geo411/GEO411_FSH_Roda/snap_grd/backscatter_resampled_50_100_200m"
         if(!dir.exists(dir_new)) dir.create(dir_new)
         name_new = paste(dir_new, name_new, sep = .Platform$file.sep)
         cmd = sprintf("gdalwarp -r med -tr %s  %s %s", i, backscatter_paths[[j]], name_new)
@@ -184,7 +189,7 @@ for (i in resolutions){
 # find BSC directory
 datadir = grep("/data/BSC", a, value = T)
 # copy the backscatter to there
-cmd = sprintf("cp /home/robin/geodata/geo411/GEO411_FSH_Roda/snap_grd/backscatter_resampled_50_100m/* %s", datadir)
+cmd = sprintf("cp /home/robin/geodata/geo411/GEO411_FSH_Roda/snap_grd/backscatter_resampled_50_100_200m/* %s", datadir)
 system(cmd)
 
 
@@ -207,9 +212,9 @@ for(i in seq_along(files)){
     system(cmd)
 }
 
-# gdawarp them to 50 adn 100m
+# gdawarp them to 50 and 100m
 
-resolutions = c("50 50", "100 100")
+resolutions = c("50 50", "100 100", "200 200")
 files = list.files("/home/robin/geodata/geo411/GEO411_FSH_Roda/coherences", full.names = T)
 for (i in seq_along(resolutions)){
     for (j in seq_along(files)){
@@ -236,17 +241,22 @@ system(cmd)
 # Load 50m rasters
 chm50 = raster("data/ancillary/chm_50m_maskedtofnf_32632.tif")
 chm100 = raster("data/ancillary/chm_100m_maskedtofnf_32632.tif")
+chm200 = raster("data/ancillary/chm_200m_maskedtofnf_32632.tif")
 
 bsc50_path = list.files("data/BSC", recursive = TRUE, pattern = "32632_50m", full.names = TRUE)
 bsc100_path = list.files("data/BSC", recursive = TRUE, pattern = "32632_10m", full.names = TRUE)
+bsc200_path = list.files("data/BSC", recursive = TRUE, pattern = "32632_20m", full.names = TRUE)
 coh50_path = list.files("data/COH", recursive = TRUE, pattern = "32632_50", full.names = TRUE)
 coh100_path = list.files("data/COH", recursive = TRUE, pattern = "32632_10", full.names = TRUE)
+coh200_path = list.files("data/COH", recursive = TRUE, pattern = "32632_10", full.names = TRUE)
 
 list_path50 = c(bsc50_path, coh50_path)
 list_path100 = c(bsc100_path, coh100_path)
+list_path200 = c(bsc100_path, coh100_path)
 
 list_raster50 = vector(mode = "list", length = length(unlist(list_path50)))
 list_raster100 = vector(mode = "list", length = length(unlist(list_path100)))
+list_raster200 = vector(mode = "list", length = length(unlist(list_path200)))
 list_extent = vector(mode = "list", length = length(unlist(list_path50)))
 
 names = c("chm",
@@ -276,6 +286,7 @@ extent = raster::extent(extent)
 
 dummy_raster50 = raster(ext = extent, resolution = 50, crs = crs(chm50))
 dummy_raster100 = raster(ext = extent, resolution = 100, crs = crs(chm50))
+dummy_raster200 = raster(ext = extent, resolution = 200, crs = crs(chm50))
 
 # RESAMPLE to extent intersecting with all data
 # not necessary
@@ -287,15 +298,22 @@ rasters100 = lapply(unlist(list_path100), function(x){
     raster(x) %>% resample(dummy_raster100)
 })
 
+rasters200 = lapply(unlist(list_path200), function(x){
+    raster(x) %>% resample(dummy_raster200)
+})
+
+
 chm50 = chm50 %>% resample(dummy_raster50)
 chm100 = chm100 %>% resample(dummy_raster100)
+chm200 = chm200 %>% resample(dummy_raster200)
 
 list_chm_backscatter_coherence50 = do.call(c, list(chm50, rasters50))
 list_chm_backscatter_coherence100 = do.call(c, list(chm100, rasters100))
+list_chm_backscatter_coherence200 = do.call(c, list(chm200, rasters200))
 
 # Make DataFrame ---------------------------------------------------------------
 
-list_all = list(list_chm_backscatter_coherence50, list_chm_backscatter_coherence100)
+list_all = list(list_chm_backscatter_coherence50, list_chm_backscatter_coherence100, list_chm_backscatter_coherence200)
 df_all = vector("list", length = length(list_all))
 final_df = NULL
 
@@ -323,7 +341,7 @@ for (h in seq_along(list_all)){
 }
 
 # rename the master lists
-names(df_all) = c("res_50", "res_100")
+names(df_all) = c("res_50", "res_100", "res_200")
 
 if (!file.exists("model/dataframes/final_df.RDS")){
     saveRDS(df_all, "model/dataframes/final_df.RDS")
@@ -332,11 +350,13 @@ if (!file.exists("model/dataframes/final_df.RDS")){
 # load dataframe
 df50 = readRDS("model/dataframes/final_df.RDS")[[1]]
 df100 = readRDS("model/dataframes/final_df.RDS")[[2]]
+df200 = readRDS("model/dataframes/final_df.RDS")[[3]]
+
 
 # IMPUTE -----------------------------------------------------------------------
 # throw out all lines where there is one NA (not sure if this is the best way to impute data;)
 
-dfs = list(df50 = df50, df100 = df100)
+dfs = list(df50 = df50, df100 = df100, df200=df200)
 
 for (i in seq_along(dfs)){
     df = dfs[[i]]
@@ -370,9 +390,9 @@ for (i in seq_along(dfs)){
 # BOXPLOT ----------------------------------------------------------------------
 
 # get one dataframe
-df = dfs[[1]]
+df = dfs[[3]]
 
-ggplot(df, aes(height, bs_150821)) +
+ggplot(df, aes(height, coh_15_15)) +
     geom_boxplot()
 
 par(mfrow = c(3,3))
