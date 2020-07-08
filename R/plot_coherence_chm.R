@@ -14,7 +14,7 @@ source("R/plot_functions.R")
 
 # mother directory, as specified by robin
 directory = "D:/Geodaten/GEO411/01_data"
-plot_dir = "D:/Geodaten/GEO411/07_plots/"
+plot_dir = "D:/Geodaten/Master/projects/GEO411/model/plots/"
 lidar = "D:/Geodaten/GEO411/01_data/ancillary_data/chm_maskedtofnf_30_32632_-99nodata.tif"
 targetresolution = "20"
 
@@ -22,18 +22,18 @@ setwd("D:/Geodaten/Master/projects/GEO411")
 
 # Preprocess -------------------------------------------------------------------
 
-require("optparse", attach.required = T)
-
-# if needed, run the coherence preprocessing steps in preprocess_coherence.R
-file = "D:/Geodaten/Master/projects/GEO411/R/preprocess_coherence.R"
-system(command = sprintf("Rscript %s --help", file)) # run help
-
-cmd = sprintf("Rscript %s --directory=%s --lidar=%s --targetresolution=%s", file, directory, lidar, targetresolution)
-print(cmd)
-
-# run pre-processing
-# system(cmd)
-system("gdalinfo")
+# require("optparse", attach.required = T)
+#
+# # if needed, run the coherence preprocessing steps in preprocess_coherence.R
+# file = "D:/Geodaten/Master/projects/GEO411/R/preprocess_coherence.R"
+# system(command = sprintf("Rscript %s --help", file)) # run help
+#
+# cmd = sprintf("Rscript %s --directory=%s --lidar=%s --targetresolution=%s", file, directory, lidar, targetresolution)
+# print(cmd)
+#
+# # run pre-processing
+# # system(cmd)
+# system("gdalinfo")
 
 # Plotting ---------------------------------------------------------------------
 
@@ -118,6 +118,26 @@ identical(extent(chm), extent(bsc.db))
 # basic plotting
 # plot(values(coh[[1]]), values(chm))
 
+# plot function
+scatterplot = function(x, y, bins, xlab, ylab, title){
+
+    library(raster)
+
+    # coerce both rasters to dataframes
+    df = data.frame(x = raster::values(x), y = raster::values(y))
+
+    # Raster Scatterplot
+    ggplot(df, aes(x = x, y = y)) +
+        geom_bin2d(bins = bins) +
+        scale_fill_continuous(type = "viridis") +
+        ggtitle(title)+
+        ylab(ylab) +
+        xlab(xlab) +
+        theme(legend.position = "none")
+    theme_classic()
+}
+
+
 arrange_plot = function(stack, chm, names, xlab, ylab, toptitle, nrow, gridtext){
 
     plots = vector("list", nlayers(stack))
@@ -132,8 +152,8 @@ arrange_plot = function(stack, chm, names, xlab, ylab, toptitle, nrow, gridtext)
 
 arrange_plot(coh, chm, coh_names, xlab = "Canopy Height [m]", ylab = "Coherence", toptitle = "ALOS-2 HV Coherence",
              nrow = 3, gridtext = "Interferograms processed by ISCE") %>%
-    ggsave(filename = "Coherence_HV-CHM.svg", path = plot_dir, device = "svg", limitsize = F, width = 3, height = 9)
+    ggsave(filename = "Coherence_HV-CHM.png", path = plot_dir, limitsize = F, width = 3, height = 9)
 
 arrange_plot(bsc.db, chm, bsc.db_names, xlab = "Canopy Height [m]", ylab = "Backscatter coefficient [db]", toptitle = "ALOS-2 HV Backscatter",
              nrow = 3, gridtext = "Processed by SNAP") %>%
-    ggsave(filename = "Backscatter_HV-CHM.svg", path = plot_dir, device = "svg", limitsize = F, width = 7, height = 9)
+    ggsave(filename = "Backscatter_HV-CHM.png", path = plot_dir, limitsize = F, width = 7, height = 9)
