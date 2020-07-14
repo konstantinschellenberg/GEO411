@@ -14,11 +14,8 @@ library(scattermore)
 ########################
 
 # load data
-dfs = readRDS("model/dataframes/final_df.RDS")
-datasets = readRDS("model/dataframes/datasets.RDS")
-trainsets = readRDS("model/dataframes/trainsets.RDS")
-testsets = readRDS("model/dataframes/testsets.RDS")
-predsets = readRDS("model/dataframes/predsets.RDS")
+datasets = readRDS("model/dataframes/trainingtestset.RDS")
+predsets = readRDS("model/dataframes/predictionset.RDS")
 
 # check dimensions of dataframes for whole extent
 sapply(dfs[[1]], length)
@@ -35,7 +32,7 @@ sapply(datasets[[1]], function(x) sum(is.na(x)))
 ###########
 
 # 50m
-df50 = datasets$res_50
+df50 = datasets$df50
 # make scatterplot of chm agains all backscatters
 # set up plotting grid
 par(mfrow=c(1,1))
@@ -49,7 +46,7 @@ for (i in 1:length(df50)){
 }
 
 # 100m
-df100 = datasets$res_100
+df100 = datasets$df100
 # make scatterplot of chm agains all backscatters
 # set up plotting grid
 par(mfrow=c(1,1))
@@ -75,13 +72,10 @@ fit_forward = step(fit_null_model, scope = chm ~ bs_150821+bs_151002+
                        coh_15_16+coh_18_18, direction = "forward", trace=2)
 
 # predict it on dataset
-df50_raster = dfs$res_50
-# new colorder
+df50_raster = predsets$df50
 new_order = names(df50_raster) %>% grep("x|y", ., invert = F)
 df50_raster_new = df50_raster[-new_order]
 df50_raster_new = cbind(df50_raster[new_order], df50_raster_new)
-# remove Canopy Height
-df50_raster_new = df50_raster_new %>% select(-c(chm))
 
 # make raster from dataframe
 raster_list = vector(mode="list", length = 8)
@@ -98,3 +92,4 @@ for(i in seq_along(df50_raster_new)){
 # stack the covariates
 s = stack(raster_list)
 p = raster::predict(s, fit_forward)
+
