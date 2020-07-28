@@ -1,6 +1,7 @@
 #' GEO411 Modelling Plotting
 #'
 #' Categorisation of the data
+#' Boxplots
 #'
 #' Init: 04.07.2020, Konstantin Schellenberg
 
@@ -54,7 +55,9 @@ text = list(
     res50 = list(main = list(coh = c("Coherence - Canopy Height Resolution 50 m"), bsc = c("Backscatter - Canopy Height Resolution 50 m")),
                  filename = c("CHM-COH_50m", "CHM-BSC_50m")),
     res100 = list(main = list(coh = c("Coherence - Canopy Height Resolution 100 m"), bsc = c("Backscatter - Canopy Height Resolution 100 m")),
-                  filename = c("CHM-COH_100m", "CHM-BSC_100m"))
+                  filename = c("CHM-COH_100m", "CHM-BSC_100m")),
+    res200 = list(main = list(coh = c("Coherence - Canopy Height Resolution 200 m"), bsc = c("Backscatter - Canopy Height Resolution 200 m")),
+                  filename = c("CHM-COH_200m", "CHM-BSC_200m"))
 )
 
 for (i in seq_along(dfs)){
@@ -93,7 +96,7 @@ for (i in seq_along(dfs)){
     plots = list(g1, g2, g3)
     grid.arrange(grobs = plots, nrow = 3, top = text[[i]]$main$coh,
                  bottom = grid::grid.text("", gp = gpar(fontface = 3, fontsize = 9, hjust = 1, x = 1))) %>%
-        ggplot2::ggsave(filename = paste0(text[[i]]$filename[1], ".svg"), path = plot_dir, device = "svg", limitsize = F, width = 4, height = 10)
+        ggplot2::ggsave(filename = paste0(text[[i]]$filename[1], ".png"), path = plot_dir, device = "png", limitsize = F, width = 4, height = 10)
 
     # new colorramp for backscatter
     # colfunc = colorRampPalette(c("white", "#556B2F")) # Olivgrün
@@ -147,5 +150,5 @@ for (i in seq_along(dfs)){
     plots = list(h1, h2, h3, h4, h5)
     grid.arrange(grobs = plots, nrow = 3, top = text[[i]]$main$bsc,
                  bottom = grid::grid.text("", gp = gpar(fontface = 3, fontsize = 9, hjust = 1, x = 1))) %>%
-        ggplot2::ggsave(filename = paste0(text[[i]]$filename[2], ".svg"), path = plot_dir, device = "svg", limitsize = F, width = 8, height = 10)
+        ggplot2::ggsave(filename = paste0(text[[i]]$filename[2], ".png"), path = plot_dir, device = "png", limitsize = F, width = 8, height = 10)
 }

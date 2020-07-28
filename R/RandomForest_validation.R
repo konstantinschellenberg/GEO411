@@ -41,7 +41,6 @@ for (i in seq_along(trainingtestset)){
     cat("Loop ", i, ": Dataset --> ", names(trainingtestset)[i], sep = "")
 
     tts = trainingtestset[[i]]
-    ps = predictionset[[i]]
     results = rf[[i]]
 
     # create task, mind the coordinates column and the projection
@@ -55,7 +54,7 @@ for (i in seq_along(trainingtestset)){
     future::plan("multiprocess")
 
     # setup resampling task
-    resampling = rsmp("repeated-spcv-coords", folds = 3L, repeats = 2L)
+    resampling = rsmp("repeated-spcv-coords", folds = 5L, repeats = 2L)
     resampling$instantiate(task)
     cat("Number of iterations:", resampling$iters)
     cat("Type of Resampling:", resampling$man)
@@ -159,8 +158,11 @@ for (i in seq_along(trainingtestset)){
 
     library(Metrics)
     rmse = Metrics::rmse(result$truth, result$response)
+    rmse = rf[[i]][[1]][[1]]
     bias = Metrics::bias(result$truth, result$response)
+    bias = rf[[i]][[1]][[3]]
     rsq = cor(result$truth, result$response) ^ 2
+    rsq = rf[[i]][[1]][[2]]
     n = length(result$truth)
 
     gg = ggplot(result, aes(truth, response)) +
@@ -169,7 +171,7 @@ for (i in seq_along(trainingtestset)){
         geom_smooth(method = "lm") +
         annotate("text", label = paste("RMSE =", round(rmse, digits=3), "m", sep=" "), x=12,y=30, cex=4) +
         annotate("text", label = paste("Bias =", round(bias, digits=3), "", sep=" "), x=12,y=29,  cex=4) +
-        annotate("text", label = paste("R² =", round(bias, digits=3), "", sep=" "), x=12,y=28, cex=4) +
+        annotate("text", label = paste("R² =", round(rsq, digits=3), "", sep=" "), x=12,y=28, cex=4) +
         annotate("text", label = paste("n =", n, sep=" "), x=12,y=27, cex = 4) +
         sc +
         theme_classic() +

@@ -7,80 +7,56 @@ library(tidyverse)
 library(gridExtra)
 library(grid)
 
-# the plot functions are stored here
-source("R/plot_functions.R")
-
-# user input:
-
 # mother directory, as specified by robin
-directory = "D:/Geodaten/GEO411/01_data"
+path_dir = "D:/Geodaten/Master/projects/GEO411"
 plot_dir = "D:/Geodaten/Master/projects/GEO411/model/plots/"
-lidar = "D:/Geodaten/GEO411/01_data/ancillary_data/chm_maskedtofnf_30_32632_-99nodata.tif"
-targetresolution = "20"
 
-setwd("D:/Geodaten/Master/projects/GEO411")
+setwd(path_dir)
 
-# Preprocess -------------------------------------------------------------------
+# LOAD DATA --------------------------------------------------------------------
 
-# require("optparse", attach.required = T)
-#
-# # if needed, run the coherence preprocessing steps in preprocess_coherence.R
-# file = "D:/Geodaten/Master/projects/GEO411/R/preprocess_coherence.R"
-# system(command = sprintf("Rscript %s --help", file)) # run help
-#
-# cmd = sprintf("Rscript %s --directory=%s --lidar=%s --targetresolution=%s", file, directory, lidar, targetresolution)
-# print(cmd)
-#
-# # run pre-processing
-# # system(cmd)
-# system("gdalinfo")
-
-# Plotting ---------------------------------------------------------------------
-
-# fetch data
-l = list.files(path = directory, full.names = T, recursive = T)
 # get data
-pre_processed_coherences = l[grepl("topophase.cor.geo.proj.resamp.na.crop.tolidar.tif$", l)]
-pre_processed_backscatter = l[grepl("Cal_TC_32632_20x20_crop.tolidar.tif$", l)]
-pre_processed_backscatter.db = l[grepl("Cal_TC_32632_20x20_crop.tolidar.db.tif$", l)]
+coh = list.files("data/COH", full.names = T ,recursive = T)
+bsc = list.files("data/BSC", full.names = T ,recursive = T)
 
-# Quickplot
-# for (i in seq_along(pre_processed_coherences)) plot(raster(pre_processed_coherences[[i]]))
-# for (i in seq_along(pre_processed_backscatter)) plot(raster(pre_processed_backscatter[[i]]))
-# for (i in seq_along(pre_processed_backscatter.db)) plot(raster(pre_processed_backscatter.db[[i]]))
+# get 50m resolution
+pre_processed_coherences = coh[grepl("32632_10", coh)]
+pre_processed_backscatter = bsc[grepl("32632_32632_10m", bsc)]
+
+chm = raster("D:/Geodaten/Master/projects/GEO411/data/ancillary/chm_100m_maskedtofnf_32632.tif") %>%
+    `names<-`("chm")
+
+fnf = raster("data/ancillary/chm_100m_maskedtofnf_32632.tif")
+fnf = projectRaster(fnf, chm, res = c(100, 100), method = "nearest")
+
+extent(fnf)
+extent(chm)
+
 
 # variable names
 spl = strsplit(pre_processed_coherences, .Platform$file.sep)
-coh_names = paste0(sapply(spl, function(x){x[[length(x)-2]]}), "_ALOS2_coherence")
+coh_names = paste0(sapply(spl, function(x){name = x[[length(x)]]; substr(name, 1, 8)}), "_ALOS2_coherence")
 
 spl = strsplit(pre_processed_backscatter, .Platform$file.sep)
-bsc_names = paste0(sapply(spl, function(x){
-    name = x[[length(x)]]
-    substr(name, start = 40, stop = 45) %>% paste0("20", .)
-}), "_ALOS2_backscatter")
+bsc_names = paste0(sapply(spl, function(x){name = x[[length(x)]]; substr(name, start = 1, stop = 6) %>% paste0("20", .)}), "_ALOS2_backscatter")
 
-spl = strsplit(pre_processed_backscatter.db, .Platform$file.sep)
-bsc.db_names = paste0(sapply(spl, function(x){
-    name = x[[length(x)]]
-    substr(name, start = 40, stop = 45) %>% paste0("20", .)
-}), "_ALOS2_backscatter.db")
+coh = map2(pre_processed_coherences, coh_names, ~ raster(.x) %>% `names<-`(.y))
+bsc = map2(pre_processed_backscatter, bsc_names, ~ raster(.x) %>% `names<-`(.y))
 
+# load prediction
+pred = raster("model/RF/Predicion_100m.tif")
 
-# load data
-coh = brick(stack(pre_processed_coherences))
-names(coh) = coh_names
-bsc = brick(stack(pre_processed_backscatter))
-names(bsc) = bsc_names
-bsc.db = brick(stack(pre_processed_backscatter.db))
-names(bsc.db) = bsc.db_names
-chm = raster(lidar)
-names(chm) = "Lidar"
+# resample to chm
+pred = resample(pred, chm)
+
+# apply FNF mask
+pred = mask(pred, fnf)
 
 # Histogram --------------------------------------------------------------------
 # Histogram creation for CHM
 h = hist(chm, breaks = 50, maxpixels = 500000)
-h$counts = h$counts * 400 / 10000
-h_data = data.frame(breaks = h$mids, counts = h$counts)
+h$counts = h$counts
+h_data1 = data.frame(breaks = h$mids, counts = h$counts)
 
 # hist plotting
 g1 = ggplot(h_data, aes(x = breaks, y = counts)) +
@@ -90,26 +66,27 @@ g1 = ggplot(h_data, aes(x = breaks, y = counts)) +
     ylab("Area [ha]") +
     theme_classic()
 
-ggsave(plot = g1, filename = "Canopy Height Histogram.svg", path = plot_dir, device = "svg", width = 5, height = 3)
+# ggsave(plot = g1, filename = "Canopy Height Histogram.png", path = plot_dir, device = "png", width = 5, height = 3)
 
-# Histogram for Coherence
-hist(coh, breaks = 50, maxpixels = 500000)
-# Histogram for Backscatter
-hist(bsc, breaks = 50, maxpixels = 500000)
-# Histogram for Backscatter DB
-hist(bsc.db, breaks = 50, maxpixels = 500000)
+h = hist(pred, breaks = 25, maxpixels = 500000)
+h$counts = h$counts
+h_data2 = data.frame(breaks = h$mids, counts = h$counts)
+
+# hist plotting
+g2 = ggplot() +
+    geom_bar(aes(x = h_data1$breaks, y = h_data1$counts), stat = "identity", fill='darkgreen', alpha = 0.5, width = .5) +
+    geom_bar(aes(x = h_data2$breaks, y = h_data2$counts), stat = "identity", fill='red', alpha = 0.5, width = .5) +
+    ggtitle("Prediction Height Distribution in Roda Catchment") +
+    xlab("Lidar Height [m] (green); Predicted Height [m] (red)")+
+    ylab("Area [ha]") +
+    theme_classic()
+
+ggsave(plot = g2, filename = "Prediction Height Histogram.png", path = plot_dir, device = "png", width = 5, height = 3)
+
 
 # Scatterplot ------------------------------------------------------------------
 # Creating cross scatterplots for coherence and CHM for 1 date
 
-# if needed, resample chm to coherence
-coh = resample(coh, chm)
-bsc = resample(bsc, chm)
-bsc.db = resample(bsc.db, chm)
-# matching extents? Otherwise run preprocessing again -> proprocess_coherence.R
-identical(extent(chm), extent(coh))
-identical(extent(chm), extent(bsc))
-identical(extent(chm), extent(bsc.db))
 
 #################################
 # COHERENCE
@@ -154,6 +131,10 @@ arrange_plot(coh, chm, coh_names, xlab = "Canopy Height [m]", ylab = "Coherence"
              nrow = 3, gridtext = "Interferograms processed by ISCE") %>%
     ggsave(filename = "Coherence_HV-CHM.png", path = plot_dir, limitsize = F, width = 3, height = 9)
 
-arrange_plot(bsc.db, chm, bsc.db_names, xlab = "Canopy Height [m]", ylab = "Backscatter coefficient [db]", toptitle = "ALOS-2 HV Backscatter",
+arrange_plot(bsc, chm, bsc_names, xlab = "Canopy Height [m]", ylab = "Backscatter coefficient s0", toptitle = "ALOS-2 HV Backscatter",
              nrow = 3, gridtext = "Processed by SNAP") %>%
     ggsave(filename = "Backscatter_HV-CHM.png", path = plot_dir, limitsize = F, width = 7, height = 9)
+
+arrange_plot(bsc.db, chm, bsc.db_names, xlab = "Canopy Height [m]", ylab = "Backscatter coefficient [db]", toptitle = "ALOS-2 HV Backscatter",
+             nrow = 3, gridtext = "Processed by SNAP") %>%
+    ggsave(filename = "Backscatter_HVdb-CHM.png", path = plot_dir, limitsize = F, width = 7, height = 9)
