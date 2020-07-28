@@ -6,6 +6,7 @@
 library(mgcv)
 library(raster)
 library(dplyr)
+library(ggplot2)
 
 # CRS
 crs = "+proj=utm +zone=32 +datum=WGS84 +units=m +no_defs"
@@ -19,12 +20,20 @@ predictionset = readRDS("model/dataframes/predictionset.RDS")
 ##########
 
 # make melted df (resolution as one variable in a column)
-melteddf = function(trainingtestset, param, date){
+melteddf = function(trainingtestset, param, date=1){
     # determine dimension of final dataframe
-    # get the right cols and determine their length
-    c = grep(param, names(trainingtestset[[1]]), value = T) %>% grep(date, .)
+    # where is everywhere the param?
+    c = grep(param, names(trainingtestset[[1]]))
+    # index of this one
+    if(c!=1){
+        j = grep(param, names(trainingtestset[[1]]), value = T) %>% grep(date,.)
+        }else{
+            j = 1
+            }
+    # which of the indexes with the right param is the correct one
+    f = c[j]
     # filter
-    l = trainingtestset[[1]][c]
+    l = trainingtestset[[1]][f]
     l = nrow(l)
     # initalize dataframe
     df_final = data.frame(matrix(NA, ncol = 2, nrow = l))
@@ -35,17 +44,29 @@ melteddf = function(trainingtestset, param, date){
     for (i in seq_along(trainingtestset)){
         if(i==1){
         names_i = names(trainingtestset[[i]])
-        param_index = grep(param, names_i, value = T) %>% grep(date, .)
-        vals =  trainingtestset[[i]][param_index]
+        param_index = grep(param, names_i, value = T)
+        if(param_index=="chm"){
+            j = 1
+        }else{
+            j = grep(param, names_i, value = T) %>% grep(date, .)
+            j = param_index[j]
+        }
+        vals =  trainingtestset[[i]][j]
         res_fac = as.factor(names_resolutions[[i]])
         df_final[,1] = vals
         df_final[,2] = res_fac
 
         }else{
             names_i = names(trainingtestset[[i]])
-            param_index = grep(param, names_i, value = T) %>% grep(date, .)
+            param_index = grep(param, names_i, value = T)
             # filter dataframe in list
-            vals = trainingtestset[[i]][param_index]
+            if(param_index=="chm"){
+                j = 1
+            }else{
+                j = grep(param, names_i, value = T) %>% grep(date,.)
+                j = param_index[j]
+            }
+            vals = trainingtestset[[i]][j]
             df = data.frame(matrix(NA, ncol = 2, nrow = nrow(vals)))
             df[,1] = vals
             df[,2]= as.factor(names_resolutions[[i]])
@@ -57,24 +78,44 @@ melteddf = function(trainingtestset, param, date){
     return(df_final)
 }
 
-a = melteddf(trainingtestset, "bs", "150821")
-ggplot(data = a) + geom_density(aes(val, fill=res), alpha=.5)
+plotdis = function(param, date){
+    names = names(trainingtestset[[1]])
+    if("bs" %in% param){
+        p = "Backscatter"
+    }else if("coh" %in% param){
+        p = "Coherence"
+    }else{
+        p = "CHM"
+    }
+    date = grep(date, names, value = T)
+    if("bs" %in% param){
+        date = substr(date, 4, nchar(date))
+    }else if("coh" %in% param){
+        date = substr(date,5,nchar(date))
+    }else{
+        date = "Lidar"
+    }
+    a = melteddf(trainingtestset, param, date)
+    ggplot(a) + geom_density(aes(val, color=res), alpha=.4) + ggtitle(sprintf("Distribution of %s \n %s", p, date)) +
+        theme_minimal() + xlab(p) + ylab("Density")
+}
 
-
+# show distributions for different resolutions of backscatter on day 19 of Feb 2016
+plotdis("chm", "1")
 
 #######################
 ##  CHM ~ Coherence  ##
 #######################
 
 # 50m
-df50_coh = dfs$df50 %>% select(contains("coh") | contains("chm"))
+df50_coh = trainingtestset$df50 %>% select(contains("coh") | contains("chm"))
 df50_coh$res = factor(50)
 # 50m
-df100_coh = dfs$df100 %>% select(contains("coh") | contains("chm"))
+df100_coh = trainingtestset$df100 %>% select(contains("coh") | contains("chm"))
 df100_coh$res = factor(100)
 # make one dataframe and melt it
 df_all = rbind(df50_coh, df100_coh)
-ggplot(data = df_all) + geom_point(aes(x = chm, y = coh_15_15, color=factor(res)), alpha=.04) + ggtitle("CHM VS Coherence (50m and 100m")
+ggplot(data = df_all) + geom_point(aes(x = chm, y = coh_15_15, color=factor(res)), alpha=.04) + ggtitle("CHM VS Coherence (50m and 100m)")
 
 
 ###########
