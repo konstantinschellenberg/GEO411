@@ -1,0 +1,65 @@
+---
+title: "Untitled"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  bookdown::html_document2:
+    fig_caption: yes
+    theme: lumen
+    toc: yes
+    lof: true
+    number_sections: yes
+biblio-style: apalike
+link-citations: yes
+bibliography: lib.bib
+---
+
+
+@r2020
+
+@brenning2012
+
+@leidiss2016
+
+@lei2019
+
+@siqueira2018
+
+@lei2014
+
+@snap
+
+@mette2006
+
+@askne2003
+
+@kugler2015
+
+@gorska2018
+
+@ghasemi2018
+
+@isce2012
+
+@qi2016
+
+@urbazaev2019
+
+@treuhaft2000
+
+@wang2016
+
+@papathanassiou2001
+
+@papathanassiou2003
+
+@treuhaft1996
+
+@hajnsek2009
+
+@breiman2001
+
+@goetz2015
+
+@liaw2002
+
+# References
